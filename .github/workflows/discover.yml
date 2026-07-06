@@ -5,6 +5,10 @@ on:
     - cron: "7 9 * * 5"   # 금요일 18:07 KST (09:07 UTC)
   workflow_dispatch:
 
+permissions:
+  issues: write
+  contents: read
+
 jobs:
   discover:
     runs-on: ubuntu-latest

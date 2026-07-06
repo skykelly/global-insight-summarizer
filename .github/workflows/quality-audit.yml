@@ -10,6 +10,10 @@ on:
         type: boolean
         default: false
 
+permissions:
+  issues: write
+  contents: read
+
 jobs:
   audit:
     runs-on: ubuntu-latest
@@ -25,10 +29,12 @@ jobs:
 
       - name: Run quality audit
         id: audit
+        continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
         run: |
-          python3 scripts/audit_quality.py > /tmp/audit_body.txt 2>&1
+          python3 scripts/audit_quality.py > /tmp/audit_body.txt 2>&1 || \
+            echo "## 주간 품질 감사 실패\n\n\`\`\`\n$(cat /tmp/audit_body.txt)\n\`\`\`" > /tmp/audit_body.txt
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
 
       - name: Create weekly quality issue

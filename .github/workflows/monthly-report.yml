@@ -5,6 +5,10 @@ on:
     - cron: "13 0 1 * *"   # 매월 1일 09:13 KST (00:13 UTC)
   workflow_dispatch:
 
+permissions:
+  issues: write
+  contents: read
+
 jobs:
   report:
     runs-on: ubuntu-latest
@@ -20,12 +24,14 @@ jobs:
 
       - name: Generate monthly report
         id: report
+        continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python3 scripts/monthly_report.py > /tmp/report_body.txt 2>&1
+          python3 scripts/monthly_report.py > /tmp/report_body.txt 2>&1 || \
+            echo "## 월간 리포트 생성 실패\n\n\`\`\`\n$(cat /tmp/report_body.txt)\n\`\`\`" > /tmp/report_body.txt
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
           head -5 /tmp/report_body.txt
 

@@ -201,7 +201,9 @@ def run(sectors: list[str], force: bool = False, new_claims_threshold: int = 5) 
                 content = wiki_path.read_text(encoding="utf-8")
                 for line in content.splitlines():
                     if line.startswith("updated_at:"):
-                        last_updated = line.split(":", 1)[1].strip() + "T00:00:00+00:00"
+                        val = line.split(":", 1)[1].strip()
+                        if val and val != "placeholder":
+                            last_updated = val + "T00:00:00+00:00"
                         break
 
             new_count = _count_new_claims_since(sector, last_updated)
