@@ -113,18 +113,18 @@ sources:
   - id: jpm_insights
     name: J.P. Morgan Insights
     issuer: JPMorgan
-    url: https://www.jpmorgan.com/insights
+    url: https://www.jpmorgan.com/insights/research  # JS 렌더링, Jina로 전환
     tier: 2
-    method: scraper
+    method: reader
     sector_tags: [power_equipment, ai_semis]
     schedule: daily
 
   - id: ms_ideas
     name: Morgan Stanley Ideas
     issuer: Morgan Stanley
-    url: https://www.morganstanley.com/ideas
+    url: https://www.morganstanley.com/ideas  # JS 렌더링, Jina로 전환
     tier: 2
-    method: scraper
+    method: reader
     sector_tags: [power_equipment, ai_semis]
     schedule: daily
 
