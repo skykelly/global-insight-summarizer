@@ -13,6 +13,9 @@
 #   sector_tags  HANDOVER D5 초기 섹터
 #   active       R2 루틴이 반려율 40% 초과 시 false 제안
 #   manual_date  Tier 4 PDF 발행일 (YYYY-MM-DD)
+#
+# ⚠ URL 등록 규칙: 반드시 curl로 200 + 유효 XML/HTML 확인 후 등록할 것.
+#   마지막 전수 검증: 2026-07-07
 # ============================================================================
 
 defaults:
@@ -33,6 +36,7 @@ sources:
     method: rss
     sector_tags: [power_equipment, ai_semis, macro]
     schedule: daily
+    active: false  # 2026-07-07 검증: 403 Akamai 봇차단 — RSS 접근 불가, 수동 PDF 경로로 대체
 
   - id: imf_working_papers
     name: IMF Working Papers
@@ -42,6 +46,7 @@ sources:
     method: rss
     sector_tags: [macro, ai_semis]
     schedule: weekly
+    active: false  # 2026-07-07 검증: 403 Akamai 봇차단
 
   - id: oecd_insights
     name: OECD Insights
@@ -51,23 +56,24 @@ sources:
     method: rss
     sector_tags: [power_equipment, ai_semis, macro]
     schedule: daily
+    active: false  # 2026-07-07 검증: 도메인 소멸 (DNS 실패)
 
   - id: mckinsey_insights
-    name: McKinsey Global Institute
-    issuer: McKinsey Global Institute
-    url: https://www.mckinsey.com/mgi/rss/rss.xml
+    name: McKinsey Insights
+    issuer: McKinsey
+    url: https://www.mckinsey.com/insights/rss  # 2026-07-07 검증: 200 유효 XML
     tier: 1
     method: rss
     sector_tags: [power_equipment, ai_semis]
     schedule: daily
 
-  - id: bis_research
-    name: BIS Research Papers
+  - id: bis_speeches
+    name: BIS Central Bank Speeches
     issuer: BIS
-    url: https://www.bis.org/doclist/all_speeches.rss
+    url: https://www.bis.org/doclist/cbspeeches.rss  # 2026-07-07 검증: 200 RSS 1.0
     tier: 1
     method: rss
-    sector_tags: [macro, ai_semis]
+    sector_tags: [macro]
     schedule: weekly
 
   - id: iea_news
@@ -78,6 +84,7 @@ sources:
     method: rss
     sector_tags: [power_equipment]
     schedule: daily
+    active: false  # 2026-07-07 검증: 404 — 피드 경로 소멸
 
   - id: world_bank_research
     name: World Bank Research Digest
@@ -87,6 +94,7 @@ sources:
     method: rss
     sector_tags: [macro, power_equipment]
     schedule: weekly
+    active: false  # 2026-07-07 검증: 404 — 피드 경로 소멸
 
   - id: irena_news
     name: IRENA News
@@ -96,9 +104,39 @@ sources:
     method: rss
     sector_tags: [power_equipment]
     schedule: weekly
+    active: false  # 2026-07-07 검증: 403 봇차단
+
+  # ── 섹터 특화 전문매체 (2026-07-07 검증 완료 추가) ──────────────────────
+
+  - id: semianalysis
+    name: SemiAnalysis
+    issuer: SemiAnalysis
+    url: https://semianalysis.com/feed/  # 2026-07-07 검증: 200 RSS 2.0
+    tier: 1
+    method: rss
+    sector_tags: [ai_semis]
+    schedule: daily
+
+  - id: utility_dive
+    name: Utility Dive
+    issuer: Utility Dive
+    url: https://www.utilitydive.com/feeds/news/  # 2026-07-07 검증: 200 RSS 2.0
+    tier: 1
+    method: rss
+    sector_tags: [power_equipment]
+    schedule: daily
+
+  - id: ieee_spectrum_semis
+    name: IEEE Spectrum — Semiconductors
+    issuer: IEEE Spectrum
+    url: https://spectrum.ieee.org/feeds/topic/semiconductors.rss  # 2026-07-07 검증: 200 RSS 2.0
+    tier: 1
+    method: rss
+    sector_tags: [ai_semis]
+    schedule: daily
 
   # ========================================================================
-  # Tier 2 — 스크래퍼  (IB 리서치, JS 렌더링 필요)
+  # Tier 2 — 스크래퍼  (IB 리서치)
   # ========================================================================
 
   - id: gs_insights
@@ -113,22 +151,20 @@ sources:
   - id: jpm_insights
     name: J.P. Morgan Insights
     issuer: JPMorgan
-    url: https://www.jpmorgan.com/insights/research
+    url: https://www.jpmorgan.com/insights  # JPMScraper INDEX_URL과 일치
     tier: 2
-    method: reader
+    method: scraper  # JPMScraper 구현 존재 — reader에서 전환 (2026-07-07 인덱스 200 확인)
     sector_tags: [power_equipment, ai_semis]
     schedule: daily
-    active: false  # 랜딩페이지만 반환, JINA_API_KEY 없음 → scraper로 대체 필요
 
   - id: ms_ideas
     name: Morgan Stanley Ideas
     issuer: Morgan Stanley
     url: https://www.morganstanley.com/ideas
     tier: 2
-    method: reader
+    method: scraper  # MSScraper 구현 존재 — reader에서 전환 (2026-07-07 인덱스 200 확인)
     sector_tags: [power_equipment, ai_semis]
     schedule: daily
-    active: false  # 랜딩페이지만 반환 → scraper로 대체 필요
 
   - id: howard_marks_memos
     name: Howard Marks Memos (Oaktree)
@@ -138,7 +174,7 @@ sources:
     method: reader
     sector_tags: [macro, ai_semis]
     schedule: weekly
-    active: false  # 랜딩페이지만 반환 → scraper로 대체 필요
+    active: false  # 전용 스크래퍼 미구현 — 후속 과제 (인덱스 200, 링크 8개 확인)
 
   - id: blackrock_bii
     name: BlackRock Investment Institute
@@ -148,7 +184,7 @@ sources:
     method: reader
     sector_tags: [power_equipment, ai_semis, macro]
     schedule: daily
-    active: false  # 랜딩페이지만 반환 → scraper로 대체 필요
+    active: false  # 전용 스크래퍼 미구현 — 후속 과제 (인덱스 200, 링크 33개 확인)
 
   # ========================================================================
   # Tier 4 — 수동 PDF  (직접 URL 등록, manual_date 필수)
@@ -163,6 +199,7 @@ sources:
     sector_tags: [macro, power_equipment, ai_semis]
     schedule: manual
     manual_date: "2025-04-22"
+    active: false  # 2026-07-07 검증: 403 + PDF가 아닌 랜딩페이지 URL — 직접 PDF URL 확보 필요
 
   - id: ark_big_ideas_2025
     name: ARK Big Ideas 2025
@@ -173,4 +210,4 @@ sources:
     sector_tags: [ai_semis, power_equipment]
     schedule: manual
     manual_date: "2025-01-15"
-    active: false  # PDF URL 확인 후 활성화
+    active: false  # 2026-07-07 검증: S3 403 AccessDenied — URL 만료

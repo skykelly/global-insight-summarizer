@@ -1,16 +1,20 @@
 """Tier 1 RSS 채널.
-feedparser로 피드를 파싱해 표준 RawArticle dict 목록 반환.
+feedparser로 피드를 파싱한 뒤 각 entry의 원문 페이지를 fetch해 본문을 보강한다.
+원문 fetch 실패 시 RSS summary로 폴백.
 """
 from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 import feedparser
+import requests
+from bs4 import BeautifulSoup
 
-if TYPE_CHECKING:
-    pass
+from ingestion.channels.scrapers.base import _DEFAULT_HEADERS, extract_body
+
+_FULLTEXT_TIMEOUT = 20
+_FULLTEXT_MIN_CHARS = 300  # 이보다 짧으면 summary가 더 낫다고 판단
 
 
 def _parse_date(entry: feedparser.FeedParserDict) -> str | None:
@@ -34,6 +38,16 @@ def _strip_html(text: str) -> str:
     return re.sub(r"<[^>]+>", " ", text).strip()
 
 
+def _fetch_fulltext(url: str) -> str:
+    """entry 원문 페이지에서 본문 추출. 실패 시 빈 문자열."""
+    try:
+        resp = requests.get(url, headers=_DEFAULT_HEADERS, timeout=_FULLTEXT_TIMEOUT)
+        resp.raise_for_status()
+        return extract_body(BeautifulSoup(resp.text, "lxml"))
+    except Exception:
+        return ""
+
+
 def fetch(source: dict, max_items: int = 20) -> list[dict]:
     """RSS 피드를 파싱해 RawArticle 목록 반환.
 
@@ -52,7 +66,7 @@ def fetch(source: dict, max_items: int = 20) -> list[dict]:
     try:
         feed = feedparser.parse(
             feed_url,
-            request_headers={"User-Agent": "ResearchWiki/1.0 (+https://github.com)"},
+            agent=_DEFAULT_HEADERS["User-Agent"],
         )
     except Exception as e:
         print(f"[rss:{source_yaml_id}] 피드 파싱 실패: {e}")
@@ -74,7 +88,12 @@ def fetch(source: dict, max_items: int = 20) -> list[dict]:
             entry.get("summary", "")
             or (entry.get("content") or [{}])[0].get("value", "")
         )
-        raw_text = _strip_html(raw_body)[:4000]
+        summary_text = _strip_html(raw_body)[:4000]
+
+        # 본문 보강: 원문 페이지 fetch, 유의미한 길이면 채택
+        fulltext = _fetch_fulltext(url)
+        raw_text = fulltext if len(fulltext) >= max(_FULLTEXT_MIN_CHARS, len(summary_text)) else summary_text
+
         published_at = _parse_date(entry)
         articles.append({
             "url":             url,

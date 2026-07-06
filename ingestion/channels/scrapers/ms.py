@@ -7,9 +7,9 @@ from .base import BaseScraper
 
 
 class MSScraper(BaseScraper):
+    # 2026-07 사이트 개편: 기사가 /ideas/* → /insights/articles/* 로 이동
     INDEX_URLS = [
         "https://www.morganstanley.com/ideas",
-        "https://www.morganstanley.com/ideas/research",
     ]
 
     def fetch_list(self) -> list[dict]:
@@ -22,7 +22,7 @@ class MSScraper(BaseScraper):
                 continue
             for a in soup.find_all("a", href=True):
                 href: str = a["href"]
-                if "/ideas/" not in href:
+                if "/ideas/" not in href and "/insights/articles" not in href:
                     continue
                 full_url = href if href.startswith("http") else f"https://www.morganstanley.com{href}"
                 if full_url in seen:
@@ -44,25 +44,5 @@ class MSScraper(BaseScraper):
         print(f"[ms] 목록 {len(stubs)}건")
         return stubs[:20]
 
-    def fetch_article(self, url: str) -> tuple[str, bytes]:
-        """날짜는 article 페이지 JSON-LD에서 추출."""
-        import requests
-        from bs4 import BeautifulSoup
-
-        try:
-            resp = requests.get(url, headers=self.headers, timeout=20)
-            resp.raise_for_status()
-            raw_bytes = resp.content
-            soup = BeautifulSoup(resp.text, "lxml")
-            self._last_jsonld_date = self._jsonld_date(soup)
-            text = self._extract_body(soup)
-            return text, raw_bytes
-        except Exception as e:
-            print(f"[ms] fetch_article 실패 {url}: {e}")
-            return "", b""
-
-    def normalize(self, stub: dict, content: str) -> dict:
-        result = super().normalize(stub, content)
-        if not result["published_at"] and hasattr(self, "_last_jsonld_date"):
-            result["published_at"] = self._last_jsonld_date
-        return result
+    # fetch_article/normalize는 BaseScraper 공통 구현 사용
+    # (기사 페이지 JSON-LD·meta·<time>에서 날짜 백필)

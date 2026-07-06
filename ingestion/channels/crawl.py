@@ -38,10 +38,13 @@ def fetch_url(url: str, source: dict) -> dict | None:
             return None
         raw_text = (result.markdown or result.cleaned_html or "")[:8000]
         title = url.split("/")[-1].replace("-", " ")
+        published_at = _extract_date(result.cleaned_html or result.html or "")
+        if not published_at:
+            print(f"[crawl:{source_yaml_id}] 발행일 추출 실패 — sources 승격 불가 (Hard Rule)")
         return {
             "url":            url,
             "title":          title,
-            "published_at":   None,
+            "published_at":   published_at,
             "raw_text":       raw_text,
             "issuer":         issuer,
             "sector_tags":    sector_tags,
@@ -50,3 +53,23 @@ def fetch_url(url: str, source: dict) -> dict | None:
     except Exception as e:
         print(f"[crawl:{source_yaml_id}] {url} 실패: {e}")
         return None
+
+
+def _extract_date(html: str) -> str | None:
+    """JSON-LD datePublished 또는 article:published_time 메타에서 발행일 추출."""
+    if not html:
+        return None
+    from bs4 import BeautifulSoup
+    from ingestion.channels.scrapers.base import BaseScraper
+
+    soup = BeautifulSoup(html, "lxml")
+    date = BaseScraper._jsonld_date(soup)
+    if date:
+        return date
+    meta = soup.select_one('meta[property="article:published_time"]')
+    if meta and meta.get("content"):
+        import re
+        m = re.match(r"\d{4}-\d{2}-\d{2}", meta["content"])
+        if m:
+            return m.group(0)
+    return None

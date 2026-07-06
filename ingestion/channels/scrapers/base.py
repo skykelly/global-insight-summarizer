@@ -23,6 +23,22 @@ _DEFAULT_HEADERS = {
 }
 
 
+def extract_body(soup: BeautifulSoup, char_limit: int = 6000) -> str:
+    """HTML에서 기사 본문 텍스트 추출. rss/crawl 채널에서도 공용."""
+    for tag in soup(["nav", "footer", "script", "style", "header", "aside"]):
+        tag.decompose()
+    for sel in ["article", "main", '[class*="content"]', '[class*="article"]']:
+        el = soup.select_one(sel)
+        if el:
+            text = el.get_text(separator=" ", strip=True)
+            if len(text) > 200:
+                return text[:char_limit]
+    paras = soup.find_all("p")
+    return " ".join(
+        p.get_text(strip=True) for p in paras if len(p.get_text(strip=True)) > 50
+    )[:char_limit]
+
+
 class BaseScraper(ABC):
     """모든 IB 스크래퍼의 공통 인터페이스."""
 
@@ -43,24 +59,30 @@ class BaseScraper(ABC):
 
     def fetch_article(self, url: str) -> tuple[str, bytes]:
         """기사 본문 가져오기. (text_content, raw_html_bytes) 반환.
+        기사 페이지에서 발행일도 추출해 normalize에서 백필한다.
         서브클래스에서 오버라이드 가능.
         """
+        self._last_page_date: Optional[str] = None
         try:
             resp = requests.get(url, headers=self.headers, timeout=20)
             resp.raise_for_status()
             raw_bytes = resp.content
-            text = self._extract_body(BeautifulSoup(resp.text, "lxml"))
+            soup = BeautifulSoup(resp.text, "lxml")
+            self._last_page_date = self.extract_page_date(soup)
+            text = self._extract_body(soup)
             return text, raw_bytes
         except Exception as e:
             print(f"[{self.source_yaml_id}] fetch_article 실패 {url}: {e}")
             return "", b""
 
     def normalize(self, stub: dict, content: str) -> dict:
-        """stub + content → raw_source 레코드 형식."""
+        """stub + content → raw_source 레코드 형식.
+        인덱스 카드에 날짜가 없으면 기사 페이지에서 추출한 날짜로 백필.
+        """
         return {
             "url":            stub["url"],
             "title":          stub["title"],
-            "published_at":   stub.get("published_at"),
+            "published_at":   stub.get("published_at") or getattr(self, "_last_page_date", None),
             "raw_text":       content,
             "issuer":         self.issuer,
             "sector_tags":    self.sector_tags,
@@ -79,18 +101,7 @@ class BaseScraper(ABC):
             return None
 
     def _extract_body(self, soup: BeautifulSoup, char_limit: int = 6000) -> str:
-        for tag in soup(["nav", "footer", "script", "style", "header", "aside"]):
-            tag.decompose()
-        for sel in ["article", "main", '[class*="content"]', '[class*="article"]']:
-            el = soup.select_one(sel)
-            if el:
-                text = el.get_text(separator=" ", strip=True)
-                if len(text) > 200:
-                    return text[:char_limit]
-        paras = soup.find_all("p")
-        return " ".join(
-            p.get_text(strip=True) for p in paras if len(p.get_text(strip=True)) > 50
-        )[:char_limit]
+        return extract_body(soup, char_limit)
 
     @staticmethod
     def _parse_date(text: str) -> Optional[str]:
@@ -107,11 +118,41 @@ class BaseScraper(ABC):
             text, re.I,
         )
         if m:
-            try:
-                return datetime.strptime(m.group(0).replace(",", ""), "%B %d %Y").strftime("%Y-%m-%d")
-            except ValueError:
-                pass
+            for fmt in ("%B %d %Y", "%b %d %Y"):  # 풀네임(June)·약어(Jun) 모두 지원
+                try:
+                    return datetime.strptime(m.group(0).replace(",", ""), fmt).strftime("%Y-%m-%d")
+                except ValueError:
+                    pass
         return None
+
+    @classmethod
+    def extract_page_date(cls, soup: BeautifulSoup) -> Optional[str]:
+        """기사 페이지에서 발행일 추출: JSON-LD → meta → <time> 순."""
+        date = cls._jsonld_date(soup)
+        if date:
+            return date
+        for sel in ('meta[property="article:published_time"]',
+                    'meta[name="publish_date"]',
+                    'meta[name="publication_date"]',
+                    'meta[name="date"]'):
+            meta = soup.select_one(sel)
+            if meta and meta.get("content"):
+                m = re.match(r"\d{4}-\d{2}-\d{2}", meta["content"])
+                if m:
+                    return m.group(0)
+        t = soup.select_one("time[datetime]")
+        if t:
+            m = re.match(r"\d{4}-\d{2}-\d{2}", t.get("datetime", ""))
+            if m:
+                return m.group(0)
+        t = soup.find("time")
+        if t:
+            date = cls._parse_date(t.get_text(strip=True))
+            if date:
+                return date
+        # 최후 폴백: 본문 상단 텍스트에서 사람이 읽는 날짜 (MS·JPM은 구조화 마크업 없음)
+        # nav 메뉴 텍스트가 앞부분을 차지하므로 15000자까지 탐색 (실측: MS 10.3K, JPM 5.5K 지점)
+        return cls._parse_date(soup.get_text(" ", strip=True)[:15000])
 
     @staticmethod
     def _jsonld_date(soup: BeautifulSoup) -> Optional[str]:

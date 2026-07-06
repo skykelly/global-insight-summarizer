@@ -130,9 +130,9 @@ def _save_raw_source(article: dict, blob_url: str = "") -> str | None:
 
 # ── 채널별 수집 ───────────────────────────────────────────────────────────────
 
-def _run_rss(source: dict, dry_run: bool) -> int:
+def _run_rss(source: dict, dry_run: bool, limit: int | None = None) -> int:
     from ingestion.channels import rss
-    articles = rss.fetch(source)
+    articles = rss.fetch(source, max_items=limit or 20)
     if dry_run:
         for a in articles:
             print(f"  [DRY] {a['title'][:60]} ({a['published_at']})")
@@ -145,7 +145,7 @@ def _run_rss(source: dict, dry_run: bool) -> int:
     return saved
 
 
-def _run_scraper(source: dict, dry_run: bool) -> int:
+def _run_scraper(source: dict, dry_run: bool, limit: int | None = None) -> int:
     from ingestion.channels.scrapers import SCRAPER_REGISTRY
     from ingestion.blob import upload, make_blob_filename
 
@@ -156,6 +156,8 @@ def _run_scraper(source: dict, dry_run: bool) -> int:
 
     scraper = scraper_cls(source)
     stubs = scraper.fetch_list()
+    if limit:
+        stubs = stubs[:limit]
     if dry_run:
         for s in stubs:
             print(f"  [DRY] {s['title'][:60]} ({s.get('published_at')})")
@@ -182,7 +184,7 @@ def _run_scraper(source: dict, dry_run: bool) -> int:
     return saved
 
 
-def _run_reader(source: dict, dry_run: bool) -> int:
+def _run_reader(source: dict, dry_run: bool, limit: int | None = None) -> int:
     """Tier 2 reader — 소스에 url_list 필드가 있어야 함."""
     from ingestion.channels import reader
     urls = source.get("url_list", [source.get("url")])
@@ -201,7 +203,7 @@ def _run_reader(source: dict, dry_run: bool) -> int:
     return saved
 
 
-def _run_pdf(source: dict, dry_run: bool) -> int:
+def _run_pdf(source: dict, dry_run: bool, limit: int | None = None) -> int:
     from ingestion.pdf.parse import fetch_pdf, parse
 
     url = source.get("url")
@@ -219,7 +221,7 @@ def _run_pdf(source: dict, dry_run: bool) -> int:
 
 # ── 폴백 체인 ─────────────────────────────────────────────────────────────────
 
-def _run_with_fallback(source: dict, dry_run: bool) -> int:
+def _run_with_fallback(source: dict, dry_run: bool, limit: int | None = None) -> int:
     method = source.get("method", "rss")
     tier = source.get("tier", 1)
 
@@ -236,7 +238,7 @@ def _run_with_fallback(source: dict, dry_run: bool) -> int:
         return 0
 
     try:
-        return fn(source, dry_run)
+        return fn(source, dry_run, limit)
     except Exception as e:
         print(f"  [ERROR] {source['id']} ({method}) 실패: {e}")
         # Tier 3 폴백: crawl
@@ -273,6 +275,7 @@ def main() -> None:
     parser.add_argument("--tier", type=int, help="특정 tier만 실행")
     parser.add_argument("--sector", metavar="TAG", help="특정 섹터 태그 소스만 실행")
     parser.add_argument("--sources-file", metavar="PATH", help="sources.yaml 경로 오버라이드")
+    parser.add_argument("--limit", type=int, help="소스당 최대 수집 건수 (검증용)")
     args = parser.parse_args()
 
     sources_path = Path(args.sources_file) if args.sources_file else None
@@ -291,7 +294,7 @@ def main() -> None:
     total_saved = 0
     for source in targets:
         print(f"[{source['id']}] tier={source.get('tier')} method={source.get('method')} — {source['name']}")
-        n = _run_with_fallback(source, args.dry_run)
+        n = _run_with_fallback(source, args.dry_run, args.limit)
         print(f"  → {'기록됨' if not args.dry_run else '예상'}: {n}건\n")
         total_saved += n
 

@@ -21,6 +21,10 @@ class JPMScraper(BaseScraper):
             href: str = a["href"]
             if "/insights/" not in href and "/research/" not in href:
                 continue
+            # 섹션 허브 제외: /insights/<article> 이상 깊이만 (기사: /insights/<섹션>/<기사>)
+            path = href.split("//")[-1].split("/", 1)[-1] if href.startswith("http") else href.lstrip("/")
+            if len([p for p in path.split("/") if p]) < 3:
+                continue
             full_url = href if href.startswith("http") else f"https://www.jpmorgan.com{href}"
             if full_url in seen:
                 continue
@@ -37,31 +41,13 @@ class JPMScraper(BaseScraper):
                 title = h.get_text(strip=True)
             if len(title) < 10:
                 continue
+            # nav 링크의 접근성 라벨("links to ...", "opens ...") 제외
+            if title.lower().startswith(("links to", "link to", "opens ")):
+                continue
             stubs.append({"url": full_url, "title": title, "published_at": None})
 
         print(f"[jpm] 목록 {len(stubs)}건")
         return stubs[:20]
 
-    def fetch_article(self, url: str) -> tuple[str, bytes]:
-        """날짜는 기사 페이지 JSON-LD에서 추출."""
-        import requests
-        from bs4 import BeautifulSoup
-
-        try:
-            resp = requests.get(url, headers=self.headers, timeout=20)
-            resp.raise_for_status()
-            raw_bytes = resp.content
-            soup = BeautifulSoup(resp.text, "lxml")
-            # JSON-LD에서 날짜 추출 — BaseScraper.normalize 호출 시 published_at override
-            self._last_jsonld_date = self._jsonld_date(soup)
-            text = self._extract_body(soup)
-            return text, raw_bytes
-        except Exception as e:
-            print(f"[jpm] fetch_article 실패 {url}: {e}")
-            return "", b""
-
-    def normalize(self, stub: dict, content: str) -> dict:
-        result = super().normalize(stub, content)
-        if not result["published_at"] and hasattr(self, "_last_jsonld_date"):
-            result["published_at"] = self._last_jsonld_date
-        return result
+    # fetch_article/normalize는 BaseScraper 공통 구현 사용
+    # (기사 페이지 JSON-LD·meta·<time>에서 날짜 백필)
