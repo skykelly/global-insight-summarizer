@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { sources, claims } from '@/db/schema'
-import { eq, sql, inArray } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import Link from 'next/link'
 import { promises as fs } from 'fs'
 import path from 'path'
@@ -93,6 +93,14 @@ export default async function HomePage() {
 
       {/* 하단 링크 */}
       <div className="flex items-center gap-6 text-sm text-neutral-600">
+        <Link href="/chat" className="hover:text-neutral-300 transition-colors">
+          RAG Chat
+        </Link>
+        <span className="text-neutral-800">·</span>
+        <Link href="/scoreboard" className="hover:text-neutral-300 transition-colors">
+          Scoreboard
+        </Link>
+        <span className="text-neutral-800">·</span>
         <Link
           href="/review"
           className="hover:text-neutral-300 transition-colors flex items-center gap-1.5"
@@ -104,8 +112,6 @@ export default async function HomePage() {
             </span>
           )}
         </Link>
-        <span className="text-neutral-800">·</span>
-        <span className="text-neutral-700 text-xs">HANDOVER.md 참조</span>
       </div>
     </div>
   )

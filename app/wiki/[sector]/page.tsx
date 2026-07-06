@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { promises as fs } from 'fs'
 import path from 'path'
+import Link from 'next/link'
 import { remark } from 'remark'
 import remarkGfm from 'remark-gfm'
 import remarkHtml from 'remark-html'
@@ -54,9 +55,9 @@ export default async function WikiPage({ params }: Params) {
       {/* 헤더 */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <a href="/" className="text-xs text-neutral-600 hover:text-neutral-400 transition-colors">
+          <Link href="/" className="text-xs text-neutral-600 hover:text-neutral-400 transition-colors">
             Research Wiki
-          </a>
+          </Link>
           <span className="text-neutral-700">/</span>
           <span className="text-xs text-neutral-400">{meta.label}</span>
         </div>

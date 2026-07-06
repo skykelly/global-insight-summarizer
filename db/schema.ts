@@ -142,6 +142,26 @@ export const review_log = pgTable('review_log', {
   index('idx_rl_decision').on(t.decision),
 ])
 
+// ── Phase 4: chat_sessions ────────────────────────────────────────────────────
+export const chat_sessions = pgTable('chat_sessions', {
+  id:         uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  mode:       text('mode').notNull().default('normal'),  // normal | historical
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
+// ── Phase 4: chat_messages ────────────────────────────────────────────────────
+export const chat_messages = pgTable('chat_messages', {
+  id:         uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  session_id: uuid('session_id').notNull().references(() => chat_sessions.id, { onDelete: 'cascade' }),
+  role:       text('role').notNull(),     // user | assistant
+  content:    text('content').notNull(),
+  sources:    jsonb('sources'),           // [{title,url,issuer,published_at,sector}]
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('idx_cm_session').on(t.session_id),
+])
+
 // ── 범용 설정 저장소 ─────────────────────────────────────────────────────────
 export const settings = pgTable('settings', {
   key:        text('key').primaryKey(),
