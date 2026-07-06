@@ -18,15 +18,24 @@ on:
         description: "특정 tier (비우면 전체)"
         required: false
         default: ""
+      skip_knowledge:
+        description: "knowledge 파이프라인 건너뜀"
+        required: false
+        default: "false"
+        type: boolean
 
 jobs:
   ingest:
-    name: Run ingestion pipeline
+    name: Ingest + Knowledge pipeline
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
+    permissions:
+      contents: write  # wiki 자동 커밋용
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-python@v5
         with:
@@ -37,7 +46,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r ingestion/requirements.txt
 
-      - name: Run router
+      # ── 1단계: 수집 ──────────────────────────────────────────────────────
+      - name: Run ingestion router
         env:
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
           BLOB_READ_WRITE_TOKEN:  ${{ secrets.BLOB_READ_WRITE_TOKEN }}
@@ -54,7 +64,44 @@ jobs:
           if [ -n "${{ github.event.inputs.tier }}" ]; then
             ARGS="$ARGS --tier ${{ github.event.inputs.tier }}"
           fi
-          python ingestion/router.py $ARGS
+          python3 ingestion/router.py $ARGS
+
+      # ── 2단계: 지식화 파이프라인 (dry-run 시 건너뜀) ─────────────────────
+      - name: Run knowledge pipeline
+        if: >
+          github.event.inputs.dry_run != 'true' &&
+          github.event.inputs.skip_knowledge != 'true'
+        env:
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY:        ${{ secrets.OPENAI_API_KEY }}
+        run: python3 knowledge/pipeline.py
+
+      # ── 3단계: wiki 자동 생성 (신규 claims ≥5건이면 트리거) ──────────────
+      - name: Generate wiki if threshold met
+        if: >
+          github.event.inputs.dry_run != 'true' &&
+          github.event.inputs.skip_knowledge != 'true'
+        env:
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY:        ${{ secrets.OPENAI_API_KEY }}
+        run: python3 knowledge/generate_wiki.py --sector all --threshold 5
+
+      - name: Commit wiki if updated
+        if: >
+          github.event.inputs.dry_run != 'true' &&
+          github.event.inputs.skip_knowledge != 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add kb/wiki/
+          if git diff --cached --quiet; then
+            echo "wiki 변경 없음 (threshold 미달)"
+          else
+            git commit -m "chore(wiki): auto-update sector wikis [skip ci]"
+            git push
+          fi
 
       - name: Upload run log
         if: always()
