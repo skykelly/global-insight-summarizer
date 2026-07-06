@@ -66,6 +66,13 @@ jobs:
           fi
           python3 ingestion/router.py $ARGS
 
+      # ── 1.5단계: raw_sources → sources 승격 (기존 미처리 항목 포함) ────────
+      - name: Promote raw_sources to sources
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+        run: python3 ingestion/backfill_sources.py
+
       # ── 2단계: 지식화 파이프라인 (dry-run 시 건너뜀) ─────────────────────
       - name: Run knowledge pipeline
         if: >

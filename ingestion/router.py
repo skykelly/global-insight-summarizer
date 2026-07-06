@@ -60,7 +60,7 @@ def filter_sources(
 # ── raw_source 저장 ────────────────────────────────────────────────────────────
 
 def _save_raw_source(article: dict, blob_url: str = "") -> str | None:
-    """raw_sources 테이블에 INSERT. 중복이면 skip, 성공 시 UUID 반환."""
+    """raw_sources + sources(pending) 동시 INSERT. 중복이면 skip, 성공 시 UUID 반환."""
     from ingestion.dedupe import normalize_url, content_hash, is_duplicate
     from ingestion.db import db_conn
 
@@ -74,9 +74,15 @@ def _save_raw_source(article: dict, blob_url: str = "") -> str | None:
         return None
 
     blob = blob_url or article.get("blob_url", "")
+    issuer = article.get("issuer", "")
+    published_at = article.get("published_at", "")
+    title = article.get("title", "")
+    content_text = article.get("content_text", raw_text or "")
+    sector_tags = article.get("sector_tags", [])
 
     with db_conn() as conn:
         with conn.cursor() as cur:
+            # Stage 1: raw_sources 저장
             cur.execute(
                 """
                 INSERT INTO raw_sources
@@ -90,11 +96,36 @@ def _save_raw_source(article: dict, blob_url: str = "") -> str | None:
                     (raw_text or "")[:8000],
                     blob,
                     article.get("source_yaml_id", ""),
-                    article.get("issuer", ""),
+                    issuer,
                 ),
             )
             row = cur.fetchone()
-            return str(row["id"]) if row else None
+            if not row:
+                return None
+            raw_id = str(row["id"])
+
+            # Stage 2: sources 승격 — issuer + published_at + title 필수 (Hard Rule)
+            if issuer and published_at and title:
+                cur.execute(
+                    """
+                    INSERT INTO sources
+                      (raw_source_id, title, url, issuer, published_at,
+                       sector_tags, content_text, blob_url, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'pending')
+                    ON CONFLICT DO NOTHING
+                    """,
+                    (
+                        raw_id, title, url, issuer, published_at,
+                        sector_tags,
+                        content_text[:50000],
+                        blob,
+                    ),
+                )
+            else:
+                missing = [f for f in ("issuer","published_at","title") if not article.get(f)]
+                print(f"  [WARN] sources 승격 거부 (누락: {missing}): {url[:60]}")
+
+            return raw_id
 
 
 # ── 채널별 수집 ───────────────────────────────────────────────────────────────
