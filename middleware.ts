@@ -1,16 +1,8 @@
-import { auth } from './auth'
-import { NextResponse } from 'next/server'
+import NextAuth from 'next-auth'
+import { authConfig } from './auth.config'
 
-// D8 / HANDOVER §1: 개인 도구 — 전체 잠금(본인 계정 전용).
-// 인증 경로·정적 자원만 예외, 나머지 전 라우트는 로그인 필수.
-export default auth((req) => {
-  if (!req.auth) {
-    const url = req.nextUrl.clone()
-    url.pathname = '/auth/signin'
-    url.searchParams.set('callbackUrl', req.nextUrl.pathname)
-    return NextResponse.redirect(url)
-  }
-})
+// auth.config만 import — jose DecompressionStream Edge 오류 방지
+export const { auth: middleware } = NextAuth(authConfig)
 
 export const config = {
   matcher: [
