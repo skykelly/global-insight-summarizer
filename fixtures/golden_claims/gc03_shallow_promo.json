@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "source_id": "FIXTURE-gc03",
+    "title": "Our New Transformer Product Line — Press Release",
+    "issuer": "ACME Corp",
+    "published_at": "2026-05-10",
+    "description": "기업 PR 보도자료 — 수치 없음, 분석 없음 (auto_reject 예상, claims 0건)"
+  },
+  "expected_claims": [],
+  "validation_rules": {
+    "max_claims": 0,
+    "expected_triage": "rejected",
+    "reject_reason": "claims=0이므로 auto_reject. 홍보 문서에 투자 주장 없음."
+  }
+}

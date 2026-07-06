@@ -1,0 +1,42 @@
+{
+  "_meta": {
+    "source_id": "FIXTURE-gc02",
+    "title": "World Economic Outlook April 2026",
+    "issuer": "IMF",
+    "published_at": "2026-04-18",
+    "description": "IMF WEO — 권위 높음, 수치 풍부 (auto_accept 예상)"
+  },
+  "expected_claims": [
+    {
+      "issuer": "IMF",
+      "sector": "power_equipment",
+      "entities": [],
+      "claim_ko": "IMF는 신흥국 에너지 인프라 투자가 2026~2028년 평균 12% 증가할 것으로 전망",
+      "direction": "bullish",
+      "horizon": "2028",
+      "metrics": {
+        "신흥국 에너지 투자 증가율": {"value": "12%", "span": "emerging market energy infrastructure investment to grow 12% on average 2026-2028"}
+      },
+      "published_at": "2026-04-18"
+    },
+    {
+      "issuer": "IMF",
+      "sector": "ai_semis",
+      "entities": [],
+      "claim_ko": "글로벌 AI 투자가 2026년 GDP 대비 0.5%p 기여, 생산성 증가 견인",
+      "direction": "bullish",
+      "horizon": "2026",
+      "metrics": {
+        "AI GDP 기여도": {"value": "0.5%p", "span": "global AI investment contributing ~0.5ppt to GDP growth in 2026"}
+      },
+      "published_at": "2026-04-18"
+    }
+  ],
+  "validation_rules": {
+    "min_claims": 1,
+    "all_have_issuer": true,
+    "all_have_published_at": true,
+    "all_have_claim_ko": true,
+    "metrics_have_span": true
+  }
+}

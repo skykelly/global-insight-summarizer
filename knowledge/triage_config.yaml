@@ -1,0 +1,11 @@
+# 트리아지 임계값 (R2 루틴이 조정 제안 — 하드코딩 금지)
+# 전 차원 >= auto_accept_min AND claims >= auto_accept_claims → auto_accepted
+# 어느 차원 <= auto_reject_max OR claims == 0 → rejected
+# 그 외 → queued
+
+auto_accept_min: 4        # 전 차원 최소선
+auto_accept_claims: 2     # claims 최소 건수
+auto_reject_max: 2        # 어느 차원이든 이 이하이면 자동 반려
+
+# 가동 초기 캘리브레이션: auto_accept의 이 비율을 queued에도 병행 등록
+calibration_sample_rate: 0.10

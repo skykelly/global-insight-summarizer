@@ -1,0 +1,54 @@
+{
+  "_meta": {
+    "source_id": "FIXTURE-gc01",
+    "title": "AI Infrastructure Capex Outlook 2026-2027",
+    "issuer": "Goldman Sachs",
+    "published_at": "2026-03-15",
+    "description": "GS AI 인프라 투자 전망 — claims 다건, 수치 밀도 높음 (auto_accept 예상)"
+  },
+  "expected_claims": [
+    {
+      "issuer": "Goldman Sachs",
+      "sector": "ai_semis",
+      "entities": ["NVIDIA", "Microsoft", "Google"],
+      "claim_ko": "GS는 하이퍼스케일러 AI 인프라 capex가 2027년까지 연 35% 성장할 것으로 전망",
+      "direction": "bullish",
+      "horizon": "2027",
+      "metrics": {
+        "AI capex CAGR": {"value": "35%", "span": "hyperscaler AI infrastructure capex grows 35% annually through 2027"}
+      },
+      "published_at": "2026-03-15"
+    },
+    {
+      "issuer": "Goldman Sachs",
+      "sector": "ai_semis",
+      "entities": ["NVIDIA", "HBM"],
+      "claim_ko": "HBM 수요는 2026년 기준 전년 대비 60% 증가, 삼성·SK하이닉스 수혜 예상",
+      "direction": "bullish",
+      "horizon": "2026",
+      "metrics": {
+        "HBM YoY growth": {"value": "60%", "span": "HBM demand growth of ~60% year-over-year in 2026"}
+      },
+      "published_at": "2026-03-15"
+    },
+    {
+      "issuer": "Goldman Sachs",
+      "sector": "power_equipment",
+      "entities": ["Eaton", "ABB"],
+      "claim_ko": "데이터센터 전력 수요 급증으로 전력기기 시장 규모가 2027년 $800B 돌파 전망",
+      "direction": "bullish",
+      "horizon": "2027",
+      "metrics": {
+        "전력기기 시장규모": {"value": "$800B", "span": "power equipment market to exceed $800B by 2027"}
+      },
+      "published_at": "2026-03-15"
+    }
+  ],
+  "validation_rules": {
+    "min_claims": 2,
+    "all_have_issuer": true,
+    "all_have_published_at": true,
+    "all_have_claim_ko": true,
+    "metrics_have_span": true
+  }
+}

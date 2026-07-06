@@ -1,0 +1,34 @@
+{
+  "_meta": {
+    "source_id": "FIXTURE-gc05",
+    "title": "Semiconductor Supply Chain Update Q2 2026",
+    "issuer": "JPMorgan",
+    "published_at": "2026-04-30",
+    "description": "JPM 반도체 업데이트 — novelty 낮음, density 중간 (queued 예상 경계 케이스)"
+  },
+  "expected_claims": [
+    {
+      "issuer": "JPMorgan",
+      "sector": "ai_semis",
+      "entities": ["TSMC", "CoWoS"],
+      "claim_ko": "JPM은 CoWoS 패키징 캐파 확장이 예상보다 2분기 지연될 것으로 전망",
+      "direction": "bearish",
+      "horizon": "H2 2026",
+      "metrics": {
+        "CoWoS 지연": {"value": "2분기", "span": "CoWoS capacity expansion delayed by approximately two quarters"}
+      },
+      "published_at": "2026-04-30"
+    }
+  ],
+  "expected_quality": {
+    "relevance": 4,
+    "density": 3,
+    "authority": 4,
+    "novelty": 2
+  },
+  "validation_rules": {
+    "min_claims": 1,
+    "expected_triage": "queued",
+    "triage_reason": "novelty=2 (auto_reject_max=2 경계) → 실제 트리아지 결과는 config에 따라 queued 또는 rejected"
+  }
+}

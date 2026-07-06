@@ -37,7 +37,7 @@ export const raw_sources = pgTable('raw_sources', {
 
 // ── Stage 2: sources ─────────────────────────────────────────────────────────
 // 정규화된 소스 레코드. issuer + published_at 이 없으면 ingest 거부 (Hard Rule).
-// Phase 2 에서 status 값 확장: pending|auto_accepted|queued|accepted|rejected
+// status: pending | auto_accepted | queued | accepted | rejected
 export const sources = pgTable('sources', {
   id:           uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   raw_source_id: uuid('raw_source_id').references(() => raw_sources.id, { onDelete: 'cascade' }),
@@ -49,11 +49,8 @@ export const sources = pgTable('sources', {
   content_text: text('content_text'),            // 정제된 텍스트 (LLM 처리용)
   blob_url:     text('blob_url'),                // Vercel Blob 원본 URL
   status:       text('status').notNull().default('pending'),
-  // pending: 수집 완료, 지식화 대기
-  // processing: 지식 파이프라인 실행 중
-  // done: 지식화 완료
-  // failed: 처리 실패
-  // Phase 2 추가: auto_accepted | queued | accepted | rejected (게이트 통과 상태)
+  quality:      jsonb('quality'),               // {relevance:4,density:3,authority:5,novelty:4}
+  gate_note:    text('gate_note'),              // Gate 판정 근거 1줄 (감사용)
   created_at:   timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at:   timestamp('updated_at', { withTimezone: true }).defaultNow(),
 }, (t) => [
@@ -104,6 +101,45 @@ export const knowledge_embeddings = pgTable('knowledge_embeddings', {
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
 }, (t) => [
   index('idx_ke_ref').on(t.ref_type, t.ref_id),
+])
+
+// ── Phase 2: claims ──────────────────────────────────────────────────────────
+// Sonnet 추출 구조화 주장. Gate 3 기준 + RAG 구조화 소스.
+// issuer + published_at 필수 (Hard Rule). 원문에 없는 수치 생성 금지.
+export const claims = pgTable('claims', {
+  id:           uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  source_id:    uuid('source_id').notNull().references(() => sources.id, { onDelete: 'cascade' }),
+  issuer:       text('issuer').notNull(),       // Hard Rule: 필수
+  sector:       text('sector').notNull(),       // 'power_equipment', 'ai_semis'
+  entities:     text('entities').array(),       // 언급 기업·제품
+  claim_ko:     text('claim_ko').notNull(),     // 한국어 1문장 주장
+  direction:    text('direction'),             // bullish / bearish / neutral
+  horizon:      text('horizon'),               // '2027', 'H2 2026', 'long-term'
+  metrics:      jsonb('metrics'),              // {"HBM CAGR": {"value":"40%","span":"원문"}}
+  published_at: date('published_at').notNull(), // Hard Rule: 필수
+  valid_until:  date('valid_until'),
+  supersedes:   uuid('supersedes'),            // self-FK — 동일 이슈어 뷰 변화 체인
+  outcome:      text('outcome'),               // Phase 4: hit/miss/partial/open
+  created_at:   timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('idx_claims_sector_pub').on(t.sector, t.published_at),
+  index('idx_claims_issuer_sector').on(t.issuer, t.sector),
+  index('idx_claims_source').on(t.source_id),
+])
+
+// ── Phase 2: review_log ───────────────────────────────────────────────────────
+// 사람 판정 이력. 반려 피드백 루프의 원료.
+// reason_tag 없이 반려 불가 (Hard Rule). R2 루틴이 패턴 분석에 활용.
+export const review_log = pgTable('review_log', {
+  id:         uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  source_id:  uuid('source_id').notNull().references(() => sources.id),
+  decision:   text('decision').notNull(),   // accept / reject
+  reason_tag: text('reason_tag'),           // irrelevant/shallow/duplicate/stale (반려 시 필수)
+  note:       text('note'),
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('idx_rl_source').on(t.source_id),
+  index('idx_rl_decision').on(t.decision),
 ])
 
 // ── 범용 설정 저장소 ─────────────────────────────────────────────────────────
