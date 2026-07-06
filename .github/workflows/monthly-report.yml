@@ -1,0 +1,61 @@
+name: R4 — Monthly Report
+
+on:
+  schedule:
+    - cron: "13 0 1 * *"   # 매월 1일 09:13 KST (00:13 UTC)
+  workflow_dispatch:
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install psycopg[binary]
+
+      - name: Generate monthly report
+        id: report
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 scripts/monthly_report.py > /tmp/report_body.txt 2>&1
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          head -5 /tmp/report_body.txt
+
+      - name: Create monthly report issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          MONTH=$(date -u -d "last month" +"%Y-%m" 2>/dev/null || \
+                  python3 -c "from datetime import datetime,timedelta; print((datetime.utcnow().replace(day=1)-timedelta(days=1)).strftime('%Y-%m'))")
+          BODY=$(cat /tmp/report_body.txt)
+
+          # 이미 이달 이슈 있으면 스킵
+          EXISTING=$(gh issue list \
+            --search "월간 운영 리포트 ${MONTH} in:title" \
+            --json number --jq '.[0].number' \
+            --repo "$GITHUB_REPOSITORY" 2>/dev/null || echo "")
+
+          if [ -z "$EXISTING" ]; then
+            gh issue create \
+              --title "월간 운영 리포트 ${MONTH}" \
+              --body "$BODY" \
+              --label "report,automation" \
+              --repo "$GITHUB_REPOSITORY"
+          else
+            echo "이달 리포트(#${EXISTING}) 이미 존재 — 스킵"
+          fi
+
+      - name: Upload report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: monthly-report-${{ github.run_id }}
+          path: /tmp/report_body.txt
+          retention-days: 90

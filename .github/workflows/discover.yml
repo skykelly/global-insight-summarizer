@@ -1,0 +1,102 @@
+name: R3 — Weekly Source Discovery
+
+on:
+  schedule:
+    - cron: "7 9 * * 5"   # 금요일 18:07 KST (09:07 UTC)
+  workflow_dispatch:
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install feedparser requests pyyaml
+
+      - name: Scan registered sources for health
+        id: health
+        run: |
+          python3 - <<'PYEOF'
+          import yaml, feedparser, requests, sys
+          from pathlib import Path
+
+          sources_file = Path("ingestion/sources.yaml")
+          if not sources_file.exists():
+              print("sources.yaml 없음")
+              sys.exit(0)
+
+          with open(sources_file) as f:
+              data = yaml.safe_load(f)
+
+          sources = data.get("sources", []) if isinstance(data, dict) else data
+          broken = []
+          for s in sources:
+              if not s.get("active", True):
+                  continue
+              method = s.get("method", "rss")
+              url = s.get("url", "")
+              if method == "rss" and url:
+                  try:
+                      feed = feedparser.parse(url)
+                      if not feed.entries:
+                          broken.append({"id": s["id"], "url": url, "reason": "RSS empty"})
+                  except Exception as e:
+                      broken.append({"id": s["id"], "url": url, "reason": str(e)})
+
+          if broken:
+              print(f"비정상 RSS 소스 {len(broken)}개 감지:")
+              for b in broken:
+                  print(f"  - {b['id']}: {b['reason']}")
+          else:
+              print("등록 소스 RSS 상태 정상")
+          PYEOF
+
+      - name: Create discovery request issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          WEEK=$(date -u +"%Y-W%V")
+          DATE=$(date -u +"%Y-%m-%d")
+
+          # 이미 이번 주 발굴 이슈 있으면 스킵
+          EXISTING=$(gh issue list \
+            --search "R3 소스 발굴 ${WEEK} in:title" \
+            --json number --jq '.[0].number' \
+            --repo "$GITHUB_REPOSITORY" 2>/dev/null || echo "")
+
+          if [ -n "$EXISTING" ]; then
+            echo "이번 주 발굴 이슈(#${EXISTING}) 이미 존재 — 스킵"
+            exit 0
+          fi
+
+          BODY="## R3 주간 소스 발굴 요청 — ${WEEK}
+
+          Claude Routine R3(세션 활성 시)가 이 이슈를 트리거로 소스 발굴을 수행합니다.
+
+          ### 자동 점검 결과
+          $(cat /tmp/health_output.txt 2>/dev/null || echo '스캔 결과 없음')
+
+          ### 발굴 지침
+          - 타깃 섹터: power_equipment, ai_semis
+          - 우선순위: IB·국제기구·컨설팅 > 국내 대형 증권사 > 싱크탱크
+          - 제외: 뉴스 집계·개인 블로그·애그리게이터
+          - authority 기준: KNOWLEDGE_MODEL.md §게이트 참조
+
+          ### 액션 아이템
+          - [ ] R3 루틴(또는 수동)으로 후보 3~5개 발굴
+          - [ ] 각 후보 RSS 유무·발행 빈도·최근성 검증
+          - [ ] 기준 통과 시 sources.yaml 추가 PR 생성
+
+          ---
+          _R3 자동 생성 — 소스 추가 PR은 수동 승인 필요_"
+
+          gh issue create \
+            --title "R3 소스 발굴 ${WEEK} — ${DATE}" \
+            --body "$BODY" \
+            --label "enhancement,automation" \
+            --repo "$GITHUB_REPOSITORY" || true

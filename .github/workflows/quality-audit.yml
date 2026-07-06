@@ -1,0 +1,63 @@
+name: R2 — Weekly Quality Audit
+
+on:
+  schedule:
+    - cron: "3 13 * * 0"   # 일요일 22:03 KST (13:03 UTC)
+  workflow_dispatch:
+    inputs:
+      json_output:
+        description: "JSON 출력 모드"
+        type: boolean
+        default: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install psycopg[binary] pyyaml
+
+      - name: Run quality audit
+        id: audit
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python3 scripts/audit_quality.py > /tmp/audit_body.txt 2>&1
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Create weekly quality issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          WEEK=$(date -u +"%Y-W%V")
+          BODY=$(cat /tmp/audit_body.txt)
+
+          # 기존 이슈가 있으면 업데이트 방지 — 이번 주 이슈 이미 있으면 스킵
+          EXISTING=$(gh issue list \
+            --search "주간 품질 리포트 ${WEEK} in:title" \
+            --json number --jq '.[0].number' \
+            --repo "$GITHUB_REPOSITORY" 2>/dev/null || echo "")
+
+          if [ -z "$EXISTING" ]; then
+            gh issue create \
+              --title "주간 품질 리포트 ${WEEK}" \
+              --body "$BODY" \
+              --label "quality,automation" \
+              --repo "$GITHUB_REPOSITORY"
+          else
+            echo "이번 주 이슈(#${EXISTING}) 이미 존재 — 스킵"
+          fi
+
+      - name: Upload audit data as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-audit-${{ github.run_id }}
+          path: /tmp/audit_body.txt
+          retention-days: 30
