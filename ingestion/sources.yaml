@@ -1,0 +1,172 @@
+# ============================================================================
+# Research Wiki — 수집 소스 레지스트리  ·  HANDOVER §2 / §5 Phase 1
+# router.py 가 이 파일을 읽어 tier 라우팅 + 폴백 체인을 수행한다.
+#
+# 필드:
+#   id           고유 슬러그 (SCRAPER_REGISTRY key와 일치 필요)
+#   name         표시 이름
+#   issuer       정식 발행 기관명 (raw_sources.issuer, claims.issuer 기준)
+#   url          RSS 피드 URL / 목록 페이지 URL / PDF URL
+#   tier         1=RSS·경량 / 2=스크래퍼·reader / 3=crawl 폴백 / 4=수동 PDF
+#   method       rss | scraper | reader | pdf
+#   schedule     daily | weekly | manual (Actions 스케줄 참조)
+#   sector_tags  HANDOVER D5 초기 섹터
+#   active       R2 루틴이 반려율 40% 초과 시 false 제안
+#   manual_date  Tier 4 PDF 발행일 (YYYY-MM-DD)
+# ============================================================================
+
+defaults:
+  active: true
+  sector_tags: [power_equipment, ai_semis]
+  schedule: daily
+
+sources:
+  # ========================================================================
+  # Tier 1 — RSS  (경량, 폴백 불필요)
+  # ========================================================================
+
+  - id: imf_blog
+    name: IMF Blog (IMFNews)
+    issuer: IMF
+    url: https://www.imf.org/en/News/Rss?RssType=blog
+    tier: 1
+    method: rss
+    sector_tags: [power_equipment, ai_semis, macro]
+    schedule: daily
+
+  - id: imf_working_papers
+    name: IMF Working Papers
+    issuer: IMF
+    url: https://www.imf.org/en/Publications/RSS?RSS=Working+Papers
+    tier: 1
+    method: rss
+    sector_tags: [macro, ai_semis]
+    schedule: weekly
+
+  - id: oecd_insights
+    name: OECD Insights
+    issuer: OECD
+    url: https://oecd-insights.org/feed/
+    tier: 1
+    method: rss
+    sector_tags: [power_equipment, ai_semis, macro]
+    schedule: daily
+
+  - id: mckinsey_insights
+    name: McKinsey Global Institute
+    issuer: McKinsey Global Institute
+    url: https://www.mckinsey.com/mgi/rss/rss.xml
+    tier: 1
+    method: rss
+    sector_tags: [power_equipment, ai_semis]
+    schedule: daily
+
+  - id: bis_research
+    name: BIS Research Papers
+    issuer: BIS
+    url: https://www.bis.org/doclist/all_speeches.rss
+    tier: 1
+    method: rss
+    sector_tags: [macro, ai_semis]
+    schedule: weekly
+
+  - id: iea_news
+    name: IEA News & Press Releases
+    issuer: IEA
+    url: https://www.iea.org/news/feed
+    tier: 1
+    method: rss
+    sector_tags: [power_equipment]
+    schedule: daily
+
+  - id: world_bank_research
+    name: World Bank Research Digest
+    issuer: World Bank
+    url: https://blogs.worldbank.org/en/rss.xml
+    tier: 1
+    method: rss
+    sector_tags: [macro, power_equipment]
+    schedule: weekly
+
+  - id: irena_news
+    name: IRENA News
+    issuer: IRENA
+    url: https://www.irena.org/rss/irena-rss-news
+    tier: 1
+    method: rss
+    sector_tags: [power_equipment]
+    schedule: weekly
+
+  # ========================================================================
+  # Tier 2 — 스크래퍼  (IB 리서치, JS 렌더링 필요)
+  # ========================================================================
+
+  - id: gs_insights
+    name: Goldman Sachs Insights
+    issuer: Goldman Sachs
+    url: https://www.goldmansachs.com/insights/
+    tier: 2
+    method: scraper
+    sector_tags: [power_equipment, ai_semis]
+    schedule: daily
+
+  - id: jpm_insights
+    name: J.P. Morgan Insights
+    issuer: JPMorgan
+    url: https://www.jpmorgan.com/insights
+    tier: 2
+    method: scraper
+    sector_tags: [power_equipment, ai_semis]
+    schedule: daily
+
+  - id: ms_ideas
+    name: Morgan Stanley Ideas
+    issuer: Morgan Stanley
+    url: https://www.morganstanley.com/ideas
+    tier: 2
+    method: scraper
+    sector_tags: [power_equipment, ai_semis]
+    schedule: daily
+
+  - id: howard_marks_memos
+    name: Howard Marks Memos (Oaktree)
+    issuer: Oaktree Capital
+    url: https://www.oaktreecapital.com/insights/howard-marks-memos
+    tier: 2
+    method: reader
+    sector_tags: [macro, ai_semis]
+    schedule: weekly
+
+  - id: blackrock_bii
+    name: BlackRock Investment Institute
+    issuer: BlackRock
+    url: https://www.blackrock.com/corporate/insights/blackrock-investment-institute
+    tier: 2
+    method: reader
+    sector_tags: [power_equipment, ai_semis, macro]
+    schedule: daily
+
+  # ========================================================================
+  # Tier 4 — 수동 PDF  (직접 URL 등록, manual_date 필수)
+  # ========================================================================
+
+  - id: imf_weo_2025
+    name: IMF World Economic Outlook Apr 2025
+    issuer: IMF
+    url: https://www.imf.org/en/Publications/WEO/Issues/2025/04/22/world-economic-outlook-april-2025
+    tier: 4
+    method: pdf
+    sector_tags: [macro, power_equipment, ai_semis]
+    schedule: manual
+    manual_date: "2025-04-22"
+
+  - id: ark_big_ideas_2025
+    name: ARK Big Ideas 2025
+    issuer: ARK Invest
+    url: https://arc-anglerfish-arc2-prod-tbt.s3.amazonaws.com/public/big-ideas-2025.pdf
+    tier: 4
+    method: pdf
+    sector_tags: [ai_semis, power_equipment]
+    schedule: manual
+    manual_date: "2025-01-15"
+    active: false  # PDF URL 확인 후 활성화

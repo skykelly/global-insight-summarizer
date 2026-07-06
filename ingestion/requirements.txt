@@ -1,0 +1,24 @@
+# Research Wiki — Python 파이프라인 의존성 (GitHub Actions 실행)
+# Session 0 스켈레톤: 스크래퍼 이월분 기준. Phase 1~2에서 확장.
+
+# ── 스크래퍼 (equity-research-blog 이월) ──
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+python-dateutil>=2.9.0
+feedparser>=6.0.11
+
+# ── Neon 직접 접근 (raw SQL) · 설정 로드 ──
+psycopg[binary]>=3.2.0
+PyYAML>=6.0.2
+
+# ── LLM (D1/D2) ──
+anthropic>=0.40.0     # Haiku 필터 / Sonnet 추출·요약
+openai>=1.30.0        # text-embedding-3-small (임베딩 전용)
+
+# ── Phase 1 추가 ──
+docling>=2.0.0            # PDF 파싱 (표 보존, D6)
+# crawl4ai>=0.4.0         # Tier 3 폴백 (선택 설치)
+
+# ── 테스트 ──
+pytest>=8.0.0
