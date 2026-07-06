@@ -71,6 +71,17 @@ def run(source_ids: list[str] | None = None) -> dict[str, int]:
             title = row["title"] or ""
             content = row["content_text"] or ""
 
+            if not content.strip():
+                print(f"[gate1] {title[:50]} — content 없음, 거부")
+                with db_conn() as conn2:
+                    with conn2.cursor() as cur2:
+                        cur2.execute(
+                            "UPDATE sources SET status='rejected', gate_note=%s, updated_at=NOW() WHERE id=%s",
+                            ("Gate1: content_text 없음", str(sid)),
+                        )
+                stats["rejected"] += 1
+                continue
+
             try:
                 result = _call_haiku(title, content)
             except Exception as e:

@@ -113,20 +113,22 @@ sources:
   - id: jpm_insights
     name: J.P. Morgan Insights
     issuer: JPMorgan
-    url: https://www.jpmorgan.com/insights/research  # JS 렌더링, Jina로 전환
+    url: https://www.jpmorgan.com/insights/research
     tier: 2
     method: reader
     sector_tags: [power_equipment, ai_semis]
     schedule: daily
+    active: false  # 랜딩페이지만 반환, JINA_API_KEY 없음 → scraper로 대체 필요
 
   - id: ms_ideas
     name: Morgan Stanley Ideas
     issuer: Morgan Stanley
-    url: https://www.morganstanley.com/ideas  # JS 렌더링, Jina로 전환
+    url: https://www.morganstanley.com/ideas
     tier: 2
     method: reader
     sector_tags: [power_equipment, ai_semis]
     schedule: daily
+    active: false  # 랜딩페이지만 반환 → scraper로 대체 필요
 
   - id: howard_marks_memos
     name: Howard Marks Memos (Oaktree)
@@ -136,6 +138,7 @@ sources:
     method: reader
     sector_tags: [macro, ai_semis]
     schedule: weekly
+    active: false  # 랜딩페이지만 반환 → scraper로 대체 필요
 
   - id: blackrock_bii
     name: BlackRock Investment Institute
@@ -145,6 +148,7 @@ sources:
     method: reader
     sector_tags: [power_equipment, ai_semis, macro]
     schedule: daily
+    active: false  # 랜딩페이지만 반환 → scraper로 대체 필요
 
   # ========================================================================
   # Tier 4 — 수동 PDF  (직접 URL 등록, manual_date 필수)
