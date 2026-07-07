@@ -15,11 +15,8 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import anthropic
-
 from knowledge.db import db_conn
-
-_CLIENT = anthropic.Anthropic()
+from knowledge.llm_client import CircuitBreaker, LLMCallError, call_json
 
 _SYSTEM = """\
 당신은 투자 리서치 문서에서 구조화된 주장(claim)을 추출하는 전문가입니다.
@@ -52,17 +49,12 @@ JSON 배열만 반환 (다른 텍스트 없음):
 
 
 def _extract(source_id: str, title: str, issuer: str, published_at: str, content: str) -> list[dict[str, Any]]:
-    msg = _CLIENT.messages.create(
+    claims = call_json(
         model="claude-sonnet-4-6",
-        max_tokens=2048,
         system=_SYSTEM,
-        messages=[{
-            "role": "user",
-            "content": f"발행처: {issuer}\n발행일: {published_at}\n제목: {title}\n\n본문:\n{content[:6000]}"
-        }],
+        user_content=f"발행처: {issuer}\n발행일: {published_at}\n제목: {title}\n\n본문:\n{content[:6000]}",
+        max_tokens=2048,
     )
-    raw = msg.content[0].text.strip()
-    claims = json.loads(raw)
     if not isinstance(claims, list):
         return []
     return claims
@@ -132,6 +124,8 @@ def run(source_ids: list[str] | None = None, backfill: bool = False) -> dict[str
                 )
             rows = cur.fetchall()
 
+    breaker = CircuitBreaker(threshold=5)
+
     for row in rows:
         sid = str(row["id"])
         title = row["title"] or ""
@@ -150,6 +144,11 @@ def run(source_ids: list[str] | None = None, backfill: bool = False) -> dict[str
             print(f"[claims] {title[:50]} → {count}건 추출")
             stats["processed"] += 1
             stats["total_claims"] += count
+            breaker.record_success()
+        except LLMCallError as e:
+            print(f"[claims] {sid} 오류: {e}")
+            stats["errors"] += 1
+            breaker.record_failure(str(e))
         except Exception as e:
             print(f"[claims] {sid} 오류: {e}")
             stats["errors"] += 1

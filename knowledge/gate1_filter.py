@@ -6,17 +6,13 @@
 """
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import anthropic
-
 from knowledge.db import db_conn
-
-_CLIENT = anthropic.Anthropic()
+from knowledge.llm_client import CircuitBreaker, LLMCallError, call_json
 
 _SYSTEM = """\
 당신은 리서치 인텔리전스 시스템의 1차 관련성 필터입니다.
@@ -37,16 +33,12 @@ JSON만 반환하세요 (다른 텍스트 없음):
 
 
 def _call_haiku(title: str, content_preview: str) -> dict:
-    msg = _CLIENT.messages.create(
+    return call_json(
         model="claude-haiku-4-5",
-        max_tokens=128,
         system=_SYSTEM,
-        messages=[{
-            "role": "user",
-            "content": f"제목: {title}\n\n본문 앞부분:\n{content_preview[:800]}"
-        }],
+        user_content=f"제목: {title}\n\n본문 앞부분:\n{content_preview[:800]}",
+        max_tokens=128,
     )
-    return json.loads(msg.content[0].text)
 
 
 def run(source_ids: list[str] | None = None) -> dict[str, int]:
@@ -65,42 +57,49 @@ def run(source_ids: list[str] | None = None) -> dict[str, int]:
                     "SELECT id, title, content_text, issuer FROM sources WHERE status='pending'"
                 )
             rows = cur.fetchall()
+    # 커넥션은 여기서 이미 닫힘 — 아래 API 호출 루프 동안 DB 트랜잭션을 열어두지 않는다
+    # (예전엔 이 루프가 위 with 블록 안에 있어서, 대량 처리 시 idle-in-transaction으로
+    #  Neon이 연결을 끊어버리는 문제가 있었다)
 
-        for row in rows:
-            sid = row["id"]
-            title = row["title"] or ""
-            content = row["content_text"] or ""
+    breaker = CircuitBreaker(threshold=5)
 
-            if not content.strip():
-                print(f"[gate1] {title[:50]} — content 없음, 거부")
-                with db_conn() as conn2:
-                    with conn2.cursor() as cur2:
-                        cur2.execute(
-                            "UPDATE sources SET status='rejected', gate_note=%s, updated_at=NOW() WHERE id=%s",
-                            ("Gate1: content_text 없음", str(sid)),
-                        )
-                stats["rejected"] += 1
-                continue
+    for row in rows:
+        sid = row["id"]
+        title = row["title"] or ""
+        content = row["content_text"] or ""
 
-            try:
-                result = _call_haiku(title, content)
-            except Exception as e:
-                print(f"[gate1] {sid} API 오류: {e} — 통과 처리")
-                stats["passed"] += 1
-                continue
+        if not content.strip():
+            print(f"[gate1] {title[:50]} — content 없음, 거부")
+            with db_conn() as conn2:
+                with conn2.cursor() as cur2:
+                    cur2.execute(
+                        "UPDATE sources SET status='rejected', gate_note=%s, updated_at=NOW() WHERE id=%s",
+                        ("Gate1: content_text 없음", str(sid)),
+                    )
+            stats["rejected"] += 1
+            continue
 
-            if result.get("pass", True):
-                stats["passed"] += 1
-            else:
-                reason = result.get("reason", "Gate1 탈락")
-                with db_conn() as conn2:
-                    with conn2.cursor() as cur2:
-                        cur2.execute(
-                            "UPDATE sources SET status='rejected', gate_note=%s, updated_at=NOW() WHERE id=%s",
-                            (f"Gate1: {reason}", str(sid)),
-                        )
-                print(f"[gate1] REJECT {title[:50]} — {reason}")
-                stats["rejected"] += 1
+        try:
+            result = _call_haiku(title, content)
+        except LLMCallError as e:
+            print(f"[gate1] {sid} API 오류: {e} — 통과 처리")
+            stats["passed"] += 1
+            breaker.record_failure(str(e))
+            continue
+
+        breaker.record_success()
+        if result.get("pass", True):
+            stats["passed"] += 1
+        else:
+            reason = result.get("reason", "Gate1 탈락")
+            with db_conn() as conn2:
+                with conn2.cursor() as cur2:
+                    cur2.execute(
+                        "UPDATE sources SET status='rejected', gate_note=%s, updated_at=NOW() WHERE id=%s",
+                        (f"Gate1: {reason}", str(sid)),
+                    )
+            print(f"[gate1] REJECT {title[:50]} — {reason}")
+            stats["rejected"] += 1
 
     return stats
 

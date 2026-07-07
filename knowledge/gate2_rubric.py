@@ -13,13 +13,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import anthropic
-
 from knowledge.db import db_conn
+from knowledge.llm_client import CircuitBreaker, LLMCallError, call_json
 
 _ROOT = Path(__file__).resolve().parent.parent
 _ANCHORS_PATH = _ROOT / "knowledge" / "prompts" / "rubric_anchors.md"
-_CLIENT = anthropic.Anthropic()
 
 
 def _load_anchors() -> str:
@@ -75,16 +73,12 @@ def _call_sonnet(title: str, issuer: str, content: str, similar: list[str], anch
 JSON만 반환 (다른 텍스트 없음):
 {{"relevance": 1~5, "density": 1~5, "authority": 1~5, "novelty": 1~5, "note": "판정 근거 1줄 (한국어)"}}"""
 
-    msg = _CLIENT.messages.create(
+    return call_json(
         model="claude-sonnet-4-6",
-        max_tokens=256,
         system=system,
-        messages=[{
-            "role": "user",
-            "content": f"발행처: {issuer}\n제목: {title}\n\n본문:\n{content[:2000]}"
-        }],
+        user_content=f"발행처: {issuer}\n제목: {title}\n\n본문:\n{content[:2000]}",
+        max_tokens=256,
     )
-    return json.loads(msg.content[0].text)
 
 
 def run(source_ids: list[str] | None = None) -> dict[str, int]:
@@ -104,6 +98,8 @@ def run(source_ids: list[str] | None = None) -> dict[str, int]:
                     "SELECT id, title, issuer, content_text FROM sources WHERE status='pending'"
                 )
             rows = cur.fetchall()
+
+    breaker = CircuitBreaker(threshold=5)
 
     for row in rows:
         sid = row["id"]
@@ -126,7 +122,12 @@ def run(source_ids: list[str] | None = None) -> dict[str, int]:
                     )
             print(f"[gate2] {title[:50]} → {quality}")
             stats["evaluated"] += 1
+            breaker.record_success()
 
+        except LLMCallError as e:
+            print(f"[gate2] {sid} 오류: {e}")
+            stats["errors"] += 1
+            breaker.record_failure(str(e))
         except Exception as e:
             print(f"[gate2] {sid} 오류: {e}")
             stats["errors"] += 1
