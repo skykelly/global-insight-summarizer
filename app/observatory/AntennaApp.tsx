@@ -93,9 +93,11 @@ function Spark({ seed }: { seed: number }) {
 
 const card: CSSProperties = { background: '#fff', border: '1px solid rgba(33,40,50,.1)', borderRadius: 10, padding: 20 };
 
-export default function AntennaApp() {
-  const [nav, setNav] = useState<Nav>('dash');
-  const [wikiSector, setWikiSector] = useState('ai_dc');
+const NAVS: Nav[] = ['dash', 'feed', 'wiki', 'chat', 'alerts'];
+
+export default function AntennaApp({ initialNav, initialWikiSector }: { initialNav?: string; initialWikiSector?: string } = {}) {
+  const [nav, setNav] = useState<Nav>(NAVS.includes(initialNav as Nav) ? (initialNav as Nav) : 'dash');
+  const [wikiSector, setWikiSector] = useState(initialWikiSector && sectors.some((s) => s.id === initialWikiSector) ? initialWikiSector : 'ai_dc');
   const [selSrc, setSelSrc] = useState('all');
   const [selSector, setSelSector] = useState('all');
   const [chatInput, setChatInput] = useState('');

@@ -1,3 +1,9 @@
+/* 경량 웹폰트 — Antenna UI(/observatory) 용.
+   Pretendard: dynamic-subset(필요 글리프만 로드) · Newsreader: serif 제목/로고.
+   외부 @import 는 반드시 다른 규칙보다 먼저 와야 한다(@import "tailwindcss" 포함). */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css");
+@import url("https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400;1,6..72,600&display=swap");
+
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
