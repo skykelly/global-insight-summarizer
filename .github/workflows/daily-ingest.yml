@@ -51,7 +51,6 @@ jobs:
         env:
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
           BLOB_READ_WRITE_TOKEN:  ${{ secrets.BLOB_READ_WRITE_TOKEN }}
-          ANTHROPIC_API_KEY:      ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY:         ${{ secrets.OPENAI_API_KEY }}
         run: |
           ARGS=""
@@ -80,7 +79,6 @@ jobs:
           github.event.inputs.skip_knowledge != 'true'
         env:
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
-          ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY:        ${{ secrets.OPENAI_API_KEY }}
         run: python3 knowledge/pipeline.py
 
@@ -91,7 +89,6 @@ jobs:
           github.event.inputs.skip_knowledge != 'true'
         env:
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
-          ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY:        ${{ secrets.OPENAI_API_KEY }}
         run: python3 knowledge/generate_wiki.py --sector all --threshold 5
 

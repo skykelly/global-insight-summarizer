@@ -14,7 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from knowledge.db import db_conn
-from knowledge.llm_client import CircuitBreaker, LLMCallError, call_json
+from knowledge.llm_client import MODEL_MAIN, CircuitBreaker, LLMCallError, call_json
 
 _ROOT = Path(__file__).resolve().parent.parent
 _ANCHORS_PATH = _ROOT / "knowledge" / "prompts" / "rubric_anchors.md"
@@ -74,7 +74,7 @@ JSON만 반환 (다른 텍스트 없음):
 {{"relevance": 1~5, "density": 1~5, "authority": 1~5, "novelty": 1~5, "note": "판정 근거 1줄 (한국어)"}}"""
 
     return call_json(
-        model="claude-sonnet-4-6",
+        model=MODEL_MAIN,
         system=system,
         user_content=f"발행처: {issuer}\n제목: {title}\n\n본문:\n{content[:2000]}",
         max_tokens=256,

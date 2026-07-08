@@ -23,13 +23,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import anthropic
-
 from knowledge.db import db_conn
+from knowledge.llm_client import MODEL_MAIN, call_text
 
 _ROOT = Path(__file__).resolve().parent.parent
 _WIKI_DIR = _ROOT / "kb" / "wiki"
-_CLIENT = anthropic.Anthropic()
 
 SECTORS = ["power_equipment", "ai_semis"]
 
@@ -159,13 +157,12 @@ updated_at: {today}
 {expired_lines}
 {summary_ctx}"""
 
-    msg = _CLIENT.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=4096,
+    return call_text(
+        model=MODEL_MAIN,
         system=system,
-        messages=[{"role": "user", "content": user_msg}],
+        user_content=user_msg,
+        max_tokens=4096,
     )
-    return msg.content[0].text
 
 
 def _count_new_claims_since(sector: str, since_iso: str) -> int:

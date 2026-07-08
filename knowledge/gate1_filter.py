@@ -12,7 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from knowledge.db import db_conn
-from knowledge.llm_client import CircuitBreaker, LLMCallError, call_json
+from knowledge.llm_client import MODEL_FILTER, CircuitBreaker, LLMCallError, call_json
 
 _SYSTEM = """\
 당신은 리서치 인텔리전스 시스템의 1차 관련성 필터입니다.
@@ -34,7 +34,7 @@ JSON만 반환하세요 (다른 텍스트 없음):
 
 def _call_haiku(title: str, content_preview: str) -> dict:
     return call_json(
-        model="claude-haiku-4-5",
+        model=MODEL_FILTER,
         system=_SYSTEM,
         user_content=f"제목: {title}\n\n본문 앞부분:\n{content_preview[:800]}",
         max_tokens=128,

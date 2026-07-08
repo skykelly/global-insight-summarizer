@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
 import { auth } from '@/auth'
 import { db } from '@/lib/db'
 import { chat_sessions, chat_messages } from '@/db/schema'
 import { eq, asc } from 'drizzle-orm'
+import { getOpenAI } from '@/lib/openai'
 import {
   embedQuery,
   detectIntent,
@@ -17,7 +17,8 @@ import {
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-const anthropic = new Anthropic()
+// 추론/생성 모델 — env로 오버라이드 가능(기본 gpt-4o)
+const CHAT_MODEL = process.env.OPENAI_MODEL_MAIN || 'gpt-4o'
 
 const SYSTEM_BASE = `당신은 글로벌 기관 리서치 전문 애널리스트 AI입니다.
 아래 [지식베이스] 컨텍스트를 기반으로 답변하세요.
@@ -124,11 +125,12 @@ export async function POST(req: NextRequest) {
     .join('\n')
 
   // ── 스트리밍 응답 ─────────────────────────────────────────────────────────
-  const stream = anthropic.messages.stream({
-    model: 'claude-sonnet-4-6',
+  const stream = await getOpenAI().chat.completions.create({
+    model: CHAT_MODEL,
     max_tokens: 2048,
-    system: systemPrompt,
+    stream: true,
     messages: [
+      { role: 'system', content: systemPrompt },
       ...history.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
       { role: 'user', content: message },
     ],
@@ -142,13 +144,11 @@ export async function POST(req: NextRequest) {
       controller.enqueue(enc({ type: 'session', session_id: sid }))
 
       try {
-        for await (const event of stream) {
-          if (
-            event.type === 'content_block_delta' &&
-            event.delta.type === 'text_delta'
-          ) {
-            fullText += event.delta.text
-            controller.enqueue(enc({ type: 'text', content: event.delta.text }))
+        for await (const chunk of stream) {
+          const delta = chunk.choices[0]?.delta?.content
+          if (delta) {
+            fullText += delta
+            controller.enqueue(enc({ type: 'text', content: delta }))
           }
         }
 

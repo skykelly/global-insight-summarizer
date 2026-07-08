@@ -16,7 +16,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from knowledge.db import db_conn
-from knowledge.llm_client import CircuitBreaker, LLMCallError, call_json
+from knowledge.llm_client import MODEL_MAIN, CircuitBreaker, LLMCallError, call_json
 
 _SYSTEM = """\
 당신은 투자 리서치 문서에서 구조화된 주장(claim)을 추출하는 전문가입니다.
@@ -33,31 +33,36 @@ _SYSTEM = """\
 9. 문서당 최대 10건 (중요도 순 선별)
 10. 섹터: 'power_equipment' 또는 'ai_semis' 중 가장 적합한 것
 
-JSON 배열만 반환 (다른 텍스트 없음):
-[
-  {
-    "issuer": "Goldman Sachs",
-    "sector": "ai_semis",
-    "entities": ["NVIDIA", "HBM"],
-    "claim_ko": "GS는 HBM 수요가 2027년까지 연 40% 성장할 것으로 전망",
-    "direction": "bullish",
-    "horizon": "2027",
-    "metrics": {"HBM CAGR": {"value": "40%", "span": "HBM demand grows ~40% CAGR through 2027"}},
-    "published_at": "2026-01-15"
-  }
-]"""
+JSON 객체만 반환 (다른 텍스트 없음). claims 키에 배열을 담으세요:
+{
+  "claims": [
+    {
+      "issuer": "Goldman Sachs",
+      "sector": "ai_semis",
+      "entities": ["NVIDIA", "HBM"],
+      "claim_ko": "GS는 HBM 수요가 2027년까지 연 40% 성장할 것으로 전망",
+      "direction": "bullish",
+      "horizon": "2027",
+      "metrics": {"HBM CAGR": {"value": "40%", "span": "HBM demand grows ~40% CAGR through 2027"}},
+      "published_at": "2026-01-15"
+    }
+  ]
+}
+추출할 주장이 없으면 {"claims": []} 를 반환하세요."""
 
 
 def _extract(source_id: str, title: str, issuer: str, published_at: str, content: str) -> list[dict[str, Any]]:
-    claims = call_json(
-        model="claude-sonnet-4-6",
+    result = call_json(
+        model=MODEL_MAIN,
         system=_SYSTEM,
         user_content=f"발행처: {issuer}\n발행일: {published_at}\n제목: {title}\n\n본문:\n{content[:6000]}",
         max_tokens=2048,
     )
-    if not isinstance(claims, list):
-        return []
-    return claims
+    # response_format=json_object 대응: {"claims": [...]} 언랩. 방어적으로 배열도 허용.
+    if isinstance(result, list):
+        return result
+    claims = result.get("claims") if isinstance(result, dict) else None
+    return claims if isinstance(claims, list) else []
 
 
 def _validate_claim(c: dict) -> bool:

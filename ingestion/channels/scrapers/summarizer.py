@@ -2,7 +2,7 @@
 # TODO (Phase 2 이식 계획 — HANDOVER §1: "summarizer.py 한국어 요약 프롬프트 이식")
 #   현재: 복사만 함. 프롬프트 자산만 재사용하고 런타임은 교체한다.
 #   목표: knowledge/summarize.py 로 이관.
-#     - GitHub Models(gpt-4o-mini) / GITHUB_TOKEN → Claude Sonnet(ANTHROPIC_API_KEY, D2).
+#     - GitHub Models(gpt-4o-mini) / GITHUB_TOKEN → OpenAI(OPENAI_MODEL_MAIN, OPENAI_API_KEY).
 #     - 150자 단문 요약 → 고정 "한국어 6섹션" 포맷 (Hard Rule: 원문 구조 모방 금지).
 #     - auto_accept / accepted 문서만 요약 실행 (품질 게이트 통과분, §2.5).
 #   이 위치(channels/scrapers/)는 임시 — Phase 2에서 knowledge/ 로 이동.
