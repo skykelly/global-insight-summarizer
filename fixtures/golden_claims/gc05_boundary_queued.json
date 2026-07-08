@@ -9,11 +9,15 @@
   "expected_claims": [
     {
       "issuer": "JPMorgan",
-      "sector": "ai_semis",
+      "sector": "semi",
+      "item_type": "risk",
+      "core_concept": "advanced_packaging_constraint",
       "entities": ["TSMC", "CoWoS"],
       "claim_ko": "JPM은 CoWoS 패키징 캐파 확장이 예상보다 2분기 지연될 것으로 전망",
       "direction": "bearish",
+      "trend_direction": "falling",
       "horizon": "H2 2026",
+      "time_horizon": "near_term",
       "metrics": {
         "CoWoS 지연": {"value": "2분기", "span": "CoWoS capacity expansion delayed by approximately two quarters"}
       },

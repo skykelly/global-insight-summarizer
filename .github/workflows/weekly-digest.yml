@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       sector:
-        description: "섹터 (all / power_equipment / ai_semis)"
+        description: "섹터 (all / ai_dc / power / semi / aisw / pm — configs/taxonomy.yaml 참조)"
         required: false
         default: "all"
 

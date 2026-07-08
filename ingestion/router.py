@@ -5,7 +5,7 @@
     python ingestion/router.py --dry-run              # 실제 수집 없이 경로만 출력
     python ingestion/router.py --source imf_blog      # 특정 소스만
     python ingestion/router.py --tier 1               # 특정 tier만
-    python ingestion/router.py --sector ai_semis      # 특정 섹터만
+    python ingestion/router.py --sector semi          # 특정 섹터만
 """
 from __future__ import annotations
 

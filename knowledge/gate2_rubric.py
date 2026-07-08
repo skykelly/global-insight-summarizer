@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from knowledge.db import db_conn
 from knowledge.llm_client import MODEL_MAIN, CircuitBreaker, LLMCallError, call_json
+from knowledge.taxonomy import sector_prompt_block
 
 _ROOT = Path(__file__).resolve().parent.parent
 _ANCHORS_PATH = _ROOT / "knowledge" / "prompts" / "rubric_anchors.md"
@@ -55,8 +56,11 @@ def _call_sonnet(title: str, issuer: str, content: str, similar: list[str], anch
     system = f"""\
 당신은 리서치 품질 평가자입니다. 아래 4차원으로 문서를 평가합니다.
 
+대상 섹터 (1차 구현 대상):
+{sector_prompt_block()}
+
 차원 정의:
-- relevance (1~5): 전력기기(power_equipment) 또는 AI 반도체(ai_semis) 섹터 적합도
+- relevance (1~5): 위 섹터 중 하나에 대한 적합도
 - density (1~5): 신규 수치·주장·데이터의 밀도 (추상적 문장만이면 낮음)
 - authority (1~5): 발행처·저자 신뢰도 (IB리서치>컨설팅>언론>블로그)
 - novelty (1~5): 기존 지식베이스 대비 신규성 (아래 유사 문서 목록 참고)

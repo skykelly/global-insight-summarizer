@@ -24,7 +24,7 @@ def _source(src_id: str, name: str, issuer: str) -> dict:
         "id": src_id,
         "name": name,
         "issuer": issuer,
-        "sector_tags": ["power_equipment", "ai_semis"],
+        "sector_tags": ["power", "semi"],
     }
 
 

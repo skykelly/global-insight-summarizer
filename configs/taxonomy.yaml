@@ -1,0 +1,276 @@
+# ============================================================================
+# Research Wiki — 섹터·컨셉 Taxonomy  ·  KNOWLEDGE_MODEL.md §2.1 참조
+#
+# 출처: docs/ib_asset_manager_sector_trend_seed.md (IB·운용사 관심 섹터 1~10위)
+# 이 파일이 섹터/컨셉의 단일 진실이다. gate1_filter/gate2_rubric/extract_claims의
+# 프롬프트, generate_wiki의 SECTORS, app/observatory의 Antenna UI가 전부 이 id를
+# 공유한다 — 하드코딩 금지, 항상 이 파일에서 로드한다.
+#
+# id는 app/observatory/data.ts(Antenna 프로토타입)의 섹터 id와 1:1로 맞춰져 있다.
+# 필드:
+#   id            고유 슬러그. claims.sector / Antenna wikiSector 와 동일 값
+#   rank_seed     seed 문서 기준 관심도 순위 (1~10)
+#   name          한국어 표시명 (Antenna UI와 동일 문자열)
+#   name_en       영문 설명명
+#   description   섹터 관찰 관점 한 줄
+#   active        1차 구현 대상이면 true. false는 2차 확장 대기(위키 stub)
+#   legacy_alias  구 2섹터 체계(D5)와의 매핑 — sources.yaml 마이그레이션 참고용
+# ============================================================================
+
+sectors:
+  - id: ai_dc
+    rank_seed: 1
+    name: "AI 인프라·데이터센터"
+    name_en: "AI Infrastructure / Data Center / Power"
+    description: "AI CapEx의 물리 인프라 확산 — 데이터센터, 전력 접속, 냉각, 자본 조달"
+    active: true
+
+  - id: power
+    rank_seed: 2
+    name: "전력망·에너지 안보"
+    name_en: "Power Grid / Energy Security / Battery / Nuclear"
+    description: "전기화와 에너지 안정성 — 전력망 투자, 원전, 배터리, 에너지 안보"
+    active: true
+    legacy_alias: power_equipment
+
+  - id: semi
+    rank_seed: 3
+    name: "반도체·AI 컴퓨트"
+    name_en: "Semiconductor / Memory / AI Compute"
+    description: "AI compute bottleneck — GPU 이후 병목의 이동(메모리·패키징·추론비용)"
+    active: true
+    legacy_alias: ai_semis
+
+  - id: aisw
+    rank_seed: 4
+    name: "AI 소프트웨어·Agent"
+    name_en: "AI Software / Agentic AI / Productivity Transformation"
+    description: "기업 운영모델의 AI화 — Copilot에서 Agentic Operating Model로"
+    active: true
+
+  - id: pm
+    rank_seed: 5
+    name: "프라이빗마켓·인프라 금융"
+    name_en: "Private Markets / Infrastructure Finance / Secondaries"
+    description: "AI 인프라·에너지 투자를 뒷받침하는 장기 자본 조달 구조"
+    active: true
+
+  - id: robot
+    rank_seed: 6
+    name: "로봇·Physical AI"
+    name_en: "Robotics / Physical AI / Autonomous Mobility"
+    description: "AI의 물리 세계 확장 — 휴머노이드, 로보택시, 산업 자동화"
+    active: false
+
+  - id: health
+    rank_seed: 7
+    name: "헬스케어·GLP-1"
+    name_en: "Healthcare / Biopharma / GLP-1 / AI R&D"
+    description: "의료·바이오 혁신과 소비 파급 — GLP-1, AI 신약개발"
+    active: false
+
+  - id: defense
+    rank_seed: 8
+    name: "방산·우주·조선"
+    name_en: "Defense / Space / Shipbuilding / Industrial Resilience"
+    description: "지정학과 재산업화 — 국방비, 공급망 재편, 우주경제"
+    active: false
+
+  - id: fin
+    rank_seed: 9
+    name: "금융 인프라·결제·디지털자산"
+    name_en: "Financial Infrastructure / Payments / Digital Assets"
+    description: "금융 운영 인프라 재편 — 결제, 토큰화, embedded finance"
+    active: false
+
+  - id: consumer
+    rank_seed: 10
+    name: "소비·미디어·게임"
+    name_en: "Consumer / Media / Gaming / Premium Travel"
+    description: "선택적 소비와 AI 콘텐츠 — 프리미엄 경험·이벤트 중심 성장"
+    active: false
+
+# ----------------------------------------------------------------------------
+# 컨셉 — 섹터 간 교차 신호를 추적하기 위한 단위 (concepts 테이블에 upsert)
+# related_sectors 첫 항목이 주 섹터. 2개 이상이면 교차 컨셉(cross-sector spread).
+# ----------------------------------------------------------------------------
+concepts:
+  - id: ai_power_bottleneck
+    canonical_name: "AI Power Bottleneck"
+    aliases: ["data center power constraint", "AI energy bottleneck", "electricity bottleneck for AI"]
+    definition: "AI 확산의 병목이 컴퓨트에서 전력으로 이동하는 현상"
+    related_sectors: [ai_dc, power]
+
+  - id: data_center_financing_gap
+    canonical_name: "Data Center Financing Gap"
+    aliases: ["private data center financing", "AI infra financing gap"]
+    definition: "AI 데이터센터 투자 규모와 전통 금융 조달 간극을 private markets가 메우는 현상"
+    related_sectors: [ai_dc, pm]
+
+  - id: grid_interconnection_delay
+    canonical_name: "Grid Interconnection Delay"
+    aliases: ["interconnection queue", "grid connection delay"]
+    definition: "신규 데이터센터 부지의 전력망 접속 지연으로 가동이 늦어지는 문제"
+    related_sectors: [ai_dc, power]
+
+  - id: cooling_constraint
+    canonical_name: "Cooling Constraint"
+    aliases: ["liquid cooling", "CDU", "immersion cooling"]
+    definition: "고밀도 AI 서버의 열관리(수랭·CDU·액침냉각) 수요 증가"
+    related_sectors: [ai_dc]
+
+  - id: ai_capex_spillover
+    canonical_name: "AI CapEx Spillover"
+    aliases: ["AI infrastructure buildout", "hyperscaler capex"]
+    definition: "hyperscaler AI 인프라 투자가 반도체를 넘어 전력·부동산·인프라 펀드로 확산"
+    related_sectors: [ai_dc, semi]
+
+  - id: electrification_wave
+    canonical_name: "Electrification Wave"
+    aliases: ["industrial electrification", "reshoring power demand"]
+    definition: "산업·교통·건물의 전기화가 만드는 구조적 전력 수요 성장"
+    related_sectors: [power]
+
+  - id: energy_security_premium
+    canonical_name: "Energy Security Premium"
+    aliases: ["energy resilience", "geopolitical energy risk"]
+    definition: "지정학 불확실성 속 안정적 에너지 공급에 붙는 프리미엄"
+    related_sectors: [power]
+
+  - id: nuclear_renaissance
+    canonical_name: "Nuclear Renaissance"
+    aliases: ["SMR", "nuclear power revival"]
+    definition: "AI 전력 수요·탈탄소·에너지 안보가 결합된 원전 재평가"
+    related_sectors: [power]
+
+  - id: memory_wall
+    canonical_name: "Memory Wall"
+    aliases: ["HBM bottleneck", "memory bandwidth constraint"]
+    definition: "AI 성능 병목이 연산보다 메모리 대역폭으로 이동하는 현상"
+    related_sectors: [semi]
+
+  - id: hbm_cycle
+    canonical_name: "HBM Cycle"
+    aliases: ["high bandwidth memory demand"]
+    definition: "AI 서버 수요와 고대역폭 메모리(HBM) 수요 사이클의 연결"
+    related_sectors: [semi]
+
+  - id: advanced_packaging_constraint
+    canonical_name: "Advanced Packaging Constraint"
+    aliases: ["CoWoS", "2.5D packaging", "interposer bottleneck"]
+    definition: "CoWoS·2.5D/3D 패키징·interposer 공급 병목"
+    related_sectors: [semi]
+
+  - id: inference_cost_compression
+    canonical_name: "Inference Cost Compression"
+    aliases: ["cost per token", "inference efficiency"]
+    definition: "추론 비용을 낮추는 칩·모델·시스템 최적화 경쟁"
+    related_sectors: [semi, aisw]
+
+  - id: agentic_operating_model
+    canonical_name: "Agentic Operating Model"
+    aliases: ["autonomous agent workflow", "multi-agent operations"]
+    definition: "여러 AI Agent가 업무 단위로 협업하는 기업 운영모델"
+    related_sectors: [aisw]
+
+  - id: context_as_moat
+    canonical_name: "Context as Moat"
+    aliases: ["context engineering", "enterprise knowledge as differentiator"]
+    definition: "AI 경쟁력의 축이 모델 성능에서 맥락·데이터·지식으로 이동"
+    related_sectors: [aisw]
+
+  - id: it_services_disruption
+    canonical_name: "IT Services Disruption"
+    aliases: ["SI disruption", "AI coding disruption"]
+    definition: "SI·IT 서비스 산업이 AI 자동화로 구조적 영향을 받는 현상"
+    related_sectors: [aisw]
+
+  - id: private_credit_expansion
+    canonical_name: "Private Credit Expansion"
+    aliases: ["direct lending growth"]
+    definition: "은행 대출·공모채를 대체·보완하는 private credit의 성장"
+    related_sectors: [pm]
+
+  - id: infrastructure_secondaries
+    canonical_name: "Infrastructure Secondaries"
+    aliases: ["secondary market infrastructure", "GP-led secondaries"]
+    definition: "인프라 자산의 세컨더리 거래가 유동성 수단에서 재가격화 수단으로 확장"
+    related_sectors: [pm]
+
+  - id: physical_ai
+    canonical_name: "Physical AI"
+    aliases: ["embodied AI", "world model"]
+    definition: "AI가 물리 환경을 인식하고 행동하는 능력"
+    related_sectors: [robot]
+
+  - id: humanoid_supply_chain
+    canonical_name: "Humanoid Supply Chain"
+    aliases: ["humanoid robot components", "motor sensor supply chain"]
+    definition: "휴머노이드 로봇의 부품·모터·센서·제어 생태계"
+    related_sectors: [robot]
+
+  - id: robotaxi_commercialization
+    canonical_name: "Robotaxi Commercialization"
+    aliases: ["autonomous taxi fleet", "robotaxi economics"]
+    definition: "자율주행 택시의 상용화와 fleet 확장"
+    related_sectors: [robot]
+
+  - id: glp1_consumer_spillover
+    canonical_name: "GLP-1 Consumer Spillover"
+    aliases: ["obesity drug spillover", "weight loss drug consumer impact"]
+    definition: "GLP-1이 식품·웰니스·보험·리테일 소비 구조에 미치는 파급"
+    related_sectors: [health, consumer]
+
+  - id: ai_driven_drug_discovery
+    canonical_name: "AI-driven Drug Discovery"
+    aliases: ["AI biopharma R&D", "AI clinical design"]
+    definition: "AI를 활용한 신약 후보 탐색과 임상 설계 효율화"
+    related_sectors: [health]
+
+  - id: defense_reindustrialization
+    canonical_name: "Defense Reindustrialization"
+    aliases: ["defense manufacturing revival"]
+    definition: "국방비 증가가 제조·조선·항공·전자산업 투자로 확산"
+    related_sectors: [defense]
+
+  - id: space_economy
+    canonical_name: "Space Economy"
+    aliases: ["satellite economy", "space defense"]
+    definition: "위성·우주통신·방산·우주 태양광 등 우주 관련 경제"
+    related_sectors: [defense]
+
+  - id: shipbuilding_revival
+    canonical_name: "Shipbuilding Revival"
+    aliases: ["US shipbuilding revitalization"]
+    definition: "미국 및 동맹국의 조선업 재건 논의"
+    related_sectors: [defense]
+
+  - id: payments_intelligence
+    canonical_name: "Payments Intelligence"
+    aliases: ["payment stack data", "commerce advantage from payments"]
+    definition: "결제 데이터와 AI를 활용한 상거래 인사이트·운영 효율"
+    related_sectors: [fin]
+
+  - id: institutional_blockchain
+    canonical_name: "Institutional Blockchain"
+    aliases: ["tokenization infrastructure", "digital asset custody"]
+    definition: "기관금융의 블록체인·토큰화·settlement·custody 인프라 전환"
+    related_sectors: [fin]
+
+  - id: selective_consumer_spending
+    canonical_name: "Selective Consumer Spending"
+    aliases: ["bifurcated consumer", "premiumization"]
+    definition: "소비자가 전체 지출을 줄이면서도 특정 프리미엄 영역엔 지출하는 현상"
+    related_sectors: [consumer]
+
+  - id: ai_gaming_profit_pool
+    canonical_name: "AI + Gaming Profit Pool"
+    aliases: ["AI game production economics"]
+    definition: "AI가 게임 제작·운영·수익화에 미치는 이익 풀 확대"
+    related_sectors: [consumer]
+
+  - id: event_driven_commerce
+    canonical_name: "Event-driven Commerce"
+    aliases: ["World Cup commerce", "sports event spending"]
+    definition: "월드컵 등 글로벌 이벤트가 미디어·음료·결제·여행 소비를 자극하는 현상"
+    related_sectors: [consumer]

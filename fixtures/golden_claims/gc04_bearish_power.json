@@ -9,11 +9,14 @@
   "expected_claims": [
     {
       "issuer": "Morgan Stanley",
-      "sector": "power_equipment",
+      "sector": "power",
+      "item_type": "counter_signal",
       "entities": ["ABB", "Siemens Energy"],
       "claim_ko": "MS는 전력기기 밸류에이션이 12개월 선행 P/E 기준 30% 고평가 구간에 진입했다고 판단",
       "direction": "bearish",
+      "trend_direction": "mixed",
       "horizon": "12개월",
+      "time_horizon": "near_term",
       "metrics": {
         "P/E 프리미엄": {"value": "30%", "span": "power equipment stocks trading at 30% premium to 12-month forward P/E"}
       },
@@ -21,11 +24,15 @@
     },
     {
       "issuer": "Morgan Stanley",
-      "sector": "power_equipment",
+      "sector": "power",
+      "item_type": "risk",
+      "core_concept": "power_equipment_shortage",
       "entities": ["변압기"],
       "claim_ko": "변압기 공급망 병목으로 2027년까지 수주잔고 18~24개월 지속 전망",
       "direction": "neutral",
+      "trend_direction": "stable",
       "horizon": "2027",
+      "time_horizon": "mid_term",
       "metrics": {
         "수주잔고 기간": {"value": "18~24개월", "span": "transformer order backlog to persist 18-24 months through 2027"}
       },

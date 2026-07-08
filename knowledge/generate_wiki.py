@@ -11,7 +11,7 @@ valid_until 경과 claims → '과거 뷰' 섹션으로 강등.
 트리거:
   - 섹터별 신규 claims 5건 누적 후 자동 호출 (daily-ingest.yml)
   - 주 1회 강제 (weekly-digest.yml)
-  - 직접 실행: python3 knowledge/generate_wiki.py --sector power_equipment
+  - 직접 실행: python3 knowledge/generate_wiki.py --sector power
 """
 from __future__ import annotations
 
@@ -25,16 +25,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from knowledge.db import db_conn
 from knowledge.llm_client import MODEL_MAIN, call_text
+from knowledge.taxonomy import active_sectors
 
 _ROOT = Path(__file__).resolve().parent.parent
 _WIKI_DIR = _ROOT / "kb" / "wiki"
 
-SECTORS = ["power_equipment", "ai_semis"]
+# 1차 구현 대상(active: true)만 자동 생성. configs/taxonomy.yaml 이 단일 진실.
+SECTORS = [s["id"] for s in active_sectors()]
 
-SECTOR_LABELS = {
-    "power_equipment": "전력기기 (Power Equipment)",
-    "ai_semis": "AI 반도체 (AI Semiconductors)",
-}
+SECTOR_LABELS = {s["id"]: f"{s['name']} ({s['name_en']})" for s in active_sectors()}
 
 
 def _fetch_claims(sector: str) -> tuple[list[dict], list[dict]]:

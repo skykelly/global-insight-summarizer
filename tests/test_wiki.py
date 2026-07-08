@@ -23,7 +23,7 @@ class TestFmtClaim:
     def _make_claim(self, **kwargs) -> dict:
         return {
             "issuer": "Goldman Sachs",
-            "sector": "ai_semis",
+            "sector": "semi",
             "claim_ko": "HBM 수요 급증 전망",
             "direction": "bullish",
             "horizon": "2027",
@@ -78,7 +78,7 @@ class TestFmtClaim:
 class TestSynthesizeDigest:
     """_synthesize_digest 출력 구조 검증."""
 
-    def _make_claim(self, sector="power_equipment", direction="bullish"):
+    def _make_claim(self, sector="power", direction="bullish"):
         return {
             "issuer": "IMF",
             "sector": sector,
@@ -93,7 +93,7 @@ class TestSynthesizeDigest:
         }
 
     def _run(self, new_claims=None, view_changes=None):
-        nc = new_claims or {"power_equipment": [], "ai_semis": []}
+        nc = new_claims or {"power": [], "semi": []}
         vc = view_changes or []
         return _synthesize_digest("2026-07-06", "2026-06-29", nc, vc)
 
@@ -113,7 +113,7 @@ class TestSynthesizeDigest:
         assert "뷰 변화 하이라이트" in out
 
     def test_claim_appears_in_output(self):
-        nc = {"power_equipment": [self._make_claim("power_equipment")], "ai_semis": []}
+        nc = {"power": [self._make_claim("power")], "semi": []}
         out = self._run(new_claims=nc)
         assert "테스트 주장" in out
         assert "[IMF, 2026-07]" in out
@@ -121,7 +121,7 @@ class TestSynthesizeDigest:
     def test_view_change_rendered(self):
         vc = [{
             "issuer": "Goldman Sachs",
-            "sector": "ai_semis",
+            "sector": "semi",
             "claim_ko": "새로운 뷰",
             "direction": "bearish",
             "published_at": "2026-07-05",
@@ -135,8 +135,8 @@ class TestSynthesizeDigest:
 
     def test_total_count_in_summary(self):
         nc = {
-            "power_equipment": [self._make_claim("power_equipment")] * 3,
-            "ai_semis": [self._make_claim("ai_semis")] * 2,
+            "power": [self._make_claim("power")] * 3,
+            "semi": [self._make_claim("semi")] * 2,
         }
         out = self._run(new_claims=nc)
         assert "5건" in out  # total 5건

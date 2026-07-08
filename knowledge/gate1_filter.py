@@ -13,29 +13,31 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from knowledge.db import db_conn
 from knowledge.llm_client import MODEL_FILTER, CircuitBreaker, LLMCallError, call_json
+from knowledge.taxonomy import sector_prompt_block
 
-_SYSTEM = """\
+
+def _system_prompt() -> str:
+    return f"""\
 당신은 리서치 인텔리전스 시스템의 1차 관련성 필터입니다.
-대상 섹터는 두 가지입니다:
-1. 전력기기(power_equipment): 전력망 인프라, 변압기, HVDC, ESS, 신재생에너지 인프라 등
-2. AI 반도체(ai_semis): GPU, HBM, CoWoS, AI 가속기, 데이터센터 칩, AI 인프라 투자 등
+대상 섹터는 다음과 같습니다 (1차 구현 대상):
+{sector_prompt_block()}
 
 규칙: 명백하게 탈락인 경우만 거부하세요. 애매하면 반드시 통과시키세요.
 
 거부 조건(이 경우에만 pass:false):
-- 두 섹터와 완전히 무관한 주제 (소비재, 스포츠, 엔터테인먼트 등, AI/에너지 각도 없음)
+- 위 섹터와 완전히 무관한 주제 (소비재, 스포츠, 엔터테인먼트 등, AI/에너지 각도 없음)
 - 목차·인덱스 페이지 (실질 콘텐츠 없음)
 - 순수 홍보·광고 (분석·데이터 없음)
 - 명백한 중복 (제목+날짜가 기존과 동일)
 
 JSON만 반환하세요 (다른 텍스트 없음):
-{"pass": true, "reason": "한 줄 판정 근거 (한국어)"}"""
+{{"pass": true, "reason": "한 줄 판정 근거 (한국어)"}}"""
 
 
 def _call_haiku(title: str, content_preview: str) -> dict:
     return call_json(
         model=MODEL_FILTER,
-        system=_SYSTEM,
+        system=_system_prompt(),
         user_content=f"제목: {title}\n\n본문 앞부분:\n{content_preview[:800]}",
         max_tokens=128,
     )

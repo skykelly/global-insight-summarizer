@@ -9,11 +9,15 @@
   "expected_claims": [
     {
       "issuer": "Goldman Sachs",
-      "sector": "ai_semis",
+      "sector": "ai_dc",
+      "item_type": "claim",
+      "core_concept": "ai_capex_spillover",
       "entities": ["NVIDIA", "Microsoft", "Google"],
       "claim_ko": "GS는 하이퍼스케일러 AI 인프라 capex가 2027년까지 연 35% 성장할 것으로 전망",
       "direction": "bullish",
+      "trend_direction": "rising",
       "horizon": "2027",
+      "time_horizon": "mid_term",
       "metrics": {
         "AI capex CAGR": {"value": "35%", "span": "hyperscaler AI infrastructure capex grows 35% annually through 2027"}
       },
@@ -21,11 +25,15 @@
     },
     {
       "issuer": "Goldman Sachs",
-      "sector": "ai_semis",
+      "sector": "semi",
+      "item_type": "metric",
+      "core_concept": "hbm_cycle",
       "entities": ["NVIDIA", "HBM"],
       "claim_ko": "HBM 수요는 2026년 기준 전년 대비 60% 증가, 삼성·SK하이닉스 수혜 예상",
       "direction": "bullish",
+      "trend_direction": "rising",
       "horizon": "2026",
+      "time_horizon": "near_term",
       "metrics": {
         "HBM YoY growth": {"value": "60%", "span": "HBM demand growth of ~60% year-over-year in 2026"}
       },
@@ -33,11 +41,15 @@
     },
     {
       "issuer": "Goldman Sachs",
-      "sector": "power_equipment",
+      "sector": "power",
+      "item_type": "claim",
+      "related_sectors": ["ai_dc"],
       "entities": ["Eaton", "ABB"],
       "claim_ko": "데이터센터 전력 수요 급증으로 전력기기 시장 규모가 2027년 $800B 돌파 전망",
       "direction": "bullish",
+      "trend_direction": "rising",
       "horizon": "2027",
+      "time_horizon": "mid_term",
       "metrics": {
         "전력기기 시장규모": {"value": "$800B", "span": "power equipment market to exceed $800B by 2027"}
       },
