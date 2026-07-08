@@ -3,6 +3,60 @@
 > 글로벌 기관 리서치를 정기 수집·지식화하고, 산업 트렌드 전망 wiki와 커스텀 RAG AI를 운영하는 개인 리서치 도구.
 > 기존 자산 3개(homestyle-wiki, geo-wiki, equity-research-blog)를 재조합하여 Claude Code로 구축한다.
 
+---
+
+## 세션 상태 (2026-07-07 갱신)
+
+### 완료된 작업
+
+| 작업 | 커밋/상태 | 비고 |
+|---|---|---|
+| Vercel 미들웨어 500 수정 | `vercel.json` framework: nextjs 추가 | Edge Runtime DecompressionStream 호환 |
+| raw_sources→sources 승격 누락 수정 | `ingestion/router.py` dual-write | pipeline.py가 sources만 읽는 구조 |
+| sources.yaml 소스 전면 검증·교체 | 8개 활성, 9개 비활성 처리 | 2026-07-07 curl 실측 |
+| IB 스크래퍼 날짜 추출 보강 | `scrapers/base.py` extract_page_date | JSON-LD→meta→time→15K 풀텍스트 폴백 |
+| RSS UA 교체 (봇차단 방지) | `ingestion/channels/rss.py` | browser UA 적용 |
+| MS 사이트 이전 대응 | `ingestion/channels/scrapers/ms.py` | /ideas→/insights/articles |
+| equity-research-blog 시드 import | `ingestion/seed_equity_blog.py` | **DB 현황: 336건** (raw_sources=sources=336) |
+| 2026+ 아티클 탐색 목록 | `docs/seed_articles_2026.md` | 239건 (IB 189 + McKinsey 50) |
+
+### DB 현황 (2026-07-07 기준)
+
+```
+raw_sources: 336건  /  sources(pending): 336건
+Jefferies       120건  (2024-08 ~ 2026-07)
+J.P. Morgan     118건  (2024-11 ~ 2026-07)
+Morgan Stanley   52건  (2024-01 ~ 2026-07)
+Goldman Sachs    39건  (2024-10 ~ 2026-07)
+BlackRock BII     5건
+기타              2건
+날짜 범위: 2023-05 ~ 2026-07-06
+```
+
+### 다음 세션 우선 작업
+
+1. **knowledge 파이프라인 실행** — `python3 knowledge/gate1_filter.py` → `extract_claims.py`
+   - 336건 pending → Gate1 필터링 → claims 추출
+   - wiki 생성 조건: 섹터당 claims ≥ 5건
+
+2. **content_text 보강** — `seed_equity_blog.py` (body fetch 없이 summary_ko만 사용함)
+   - 현재 content_text = 한국어 요약 (200-500자)
+   - 향상: `python3 ingestion/seed_equity_blog.py` (--no-fetch 제거) 로 원문 body fetch 백필 필요
+   - 단, GS/JPM/MS 원문은 봇차단 가능성 있음
+
+3. **McKinsey 50건 시드 추가** — `docs/seed_articles_2026.md`에 있는 McKinsey 아티클을 DB에 삽입
+   - `ingestion/seed_equity_blog.py` 패턴으로 McKinsey 전용 one-off 스크립트 작성
+
+4. **내일 09:00 Actions 정기 수집** — BIS/SemiAnalysis/Utility Dive/IEEE/GS/JPM/MS 추가 수집 예정
+
+### 미해결 이슈
+
+- IMF: 모든 접근 경로 봇차단(403). 수동 PDF 등록만 가능
+- Oaktree(Howard Marks), BlackRock BII 전용 스크래퍼 미구현
+- McKinsey RSS 본문 얇음 (summary 196자) — Gate2 밀도 심사에서 반려 가능성
+
+---
+
 - 작성일: 2026-07-06 (v2 — 뼈대를 homestyle-wiki로 교체, Vercel + Neon 확정 / v2.1 — 품질 게이트 v2 트리아지 설계 반영, Phase 5를 §8 Routines 운영 자동화로 대체)
 - 개발 도구: Claude Code (Opus 4.8 = 설계/리뷰, Sonnet = 구현)
 - 런타임 모델: Claude API (Haiku = 필터링, Sonnet = 구조화 추출/요약)

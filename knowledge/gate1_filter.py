@@ -41,10 +41,21 @@ def _call_haiku(title: str, content_preview: str) -> dict:
     )
 
 
+def _update_status(sid: str, status: str, note: str) -> None:
+    """레코드별 즉시 커밋 — LLM 호출 사이에 트랜잭션을 열어두지 않는다."""
+    with db_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE sources SET status=%s, gate_note=%s, updated_at=NOW() WHERE id=%s",
+                (status, note, str(sid)),
+            )
+
+
 def run(source_ids: list[str] | None = None) -> dict[str, int]:
     """pending 소스를 Gate 1으로 필터링. 반환값: {passed, rejected} 카운트."""
     stats = {"passed": 0, "rejected": 0}
 
+    # SELECT만 수행하고 즉시 커밋·연결 종료 — LLM 호출 중 idle-in-transaction 방지
     with db_conn() as conn:
         with conn.cursor() as cur:
             if source_ids:
@@ -57,9 +68,8 @@ def run(source_ids: list[str] | None = None) -> dict[str, int]:
                     "SELECT id, title, content_text, issuer FROM sources WHERE status='pending'"
                 )
             rows = cur.fetchall()
-    # 커넥션은 여기서 이미 닫힘 — 아래 API 호출 루프 동안 DB 트랜잭션을 열어두지 않는다
-    # (예전엔 이 루프가 위 with 블록 안에 있어서, 대량 처리 시 idle-in-transaction으로
-    #  Neon이 연결을 끊어버리는 문제가 있었다)
+    # 커넥션은 여기서 이미 닫힘 — 아래 API 호출 루프 동안 DB 트랜잭션을 열어두지 않는다.
+    # 이후 상태 변경은 _update_status()가 레코드별 짧은 커넥션으로 처리한다.
 
     breaker = CircuitBreaker(threshold=5)
 
@@ -70,13 +80,13 @@ def run(source_ids: list[str] | None = None) -> dict[str, int]:
 
         if not content.strip():
             print(f"[gate1] {title[:50]} — content 없음, 거부")
-            with db_conn() as conn2:
-                with conn2.cursor() as cur2:
-                    cur2.execute(
-                        "UPDATE sources SET status='rejected', gate_note=%s, updated_at=NOW() WHERE id=%s",
-                        ("Gate1: content_text 없음", str(sid)),
-                    )
+            _update_status(str(sid), "rejected", "Gate1: content_text 없음")
             stats["rejected"] += 1
+            continue
+
+        # 100자 미만은 LLM 판단 불가 — 통과 처리(Gate2에서 밀도 심사)
+        if len(content.strip()) < 100:
+            stats["passed"] += 1
             continue
 
         try:
@@ -92,12 +102,7 @@ def run(source_ids: list[str] | None = None) -> dict[str, int]:
             stats["passed"] += 1
         else:
             reason = result.get("reason", "Gate1 탈락")
-            with db_conn() as conn2:
-                with conn2.cursor() as cur2:
-                    cur2.execute(
-                        "UPDATE sources SET status='rejected', gate_note=%s, updated_at=NOW() WHERE id=%s",
-                        (f"Gate1: {reason}", str(sid)),
-                    )
+            _update_status(str(sid), "rejected", f"Gate1: {reason}")
             print(f"[gate1] REJECT {title[:50]} — {reason}")
             stats["rejected"] += 1
 
