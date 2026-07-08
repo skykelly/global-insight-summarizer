@@ -46,6 +46,23 @@ jobs:
         run: |
           python3 knowledge/weekly_digest.py
 
+      # ── 트렌드 스코어링 + 이상 징후 감지 ─────────────────────────────────
+      # 순서 고정: scoring(trend_scores 계산) → anomaly(그 결과로 판정) → report(합성)
+      - name: Compute mention/importance scores
+        env:
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+        run: python3 knowledge/scoring.py --period weekly
+
+      - name: Detect anomalies
+        env:
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+        run: python3 knowledge/anomaly.py --period weekly
+
+      - name: Generate trend memory report
+        env:
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+        run: python3 knowledge/trend_report.py --period weekly
+
       - name: Commit wiki updates
         run: |
           git config user.name  "github-actions[bot]"
@@ -62,6 +79,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: weekly-digest-${{ github.run_id }}
-          path: output/weekly-*.md
+          path: |
+            output/weekly-*.md
+            output/trend-report-*.md
           if-no-files-found: ignore
           retention-days: 90

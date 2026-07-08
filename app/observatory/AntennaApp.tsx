@@ -182,7 +182,7 @@ export default function AntennaApp({ initialNav, initialWikiSector }: { initialN
       {/* ============ SIDEBAR ============ */}
       <div style={{ width: 224, flex: 'none', background: '#171C26', color: '#EDEAE1', display: 'flex', flexDirection: 'column', padding: '22px 14px 16px' }}>
         <div style={{ padding: '0 10px 22px', borderBottom: '1px solid rgba(237,234,225,.12)' }}>
-          <div style={{ fontFamily: serif, fontStyle: 'italic', fontWeight: 600, fontSize: 24, letterSpacing: '.5px' }}>Antenna</div>
+          <div style={{ fontFamily: serif, fontStyle: 'italic', fontWeight: 600, fontSize: 24, letterSpacing: '.5px' }}>Market Signal IQ</div>
           <div style={{ fontSize: 11, color: 'rgba(237,234,225,.55)', marginTop: 4, letterSpacing: '.04em' }}>글로벌 리서치 인텔리전스</div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 16 }}>

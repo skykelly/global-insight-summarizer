@@ -51,16 +51,17 @@ SOURCE_NAME_MAP: dict[str, str] = {
     "goldman-sachs":  "Goldman Sachs",
     "j-p-morgan":     "J.P. Morgan",
     "morgan-stanley": "Morgan Stanley",
-    "blackrock-bii":  "BlackRock",
+    "blackrock":      "BlackRock",
     "jefferies":      "Jefferies",
 }
 
 SOURCE_YAML_ID_MAP: dict[str, str] = {
+    # 키는 equity-research-blog articles.json 의 실제 source_id (실측 확인, 하이픈 없음).
     "goldman-sachs":  "gs_insights",
     "j-p-morgan":     "jpm_insights",
     "morgan-stanley": "ms_ideas",
-    "blackrock-bii":  "blackrock_bii",
-    "jefferies":      "jefferies",
+    "blackrock":      "blackrock_bii",
+    "jefferies":      "jefferies_insights",
 }
 
 _MACRO_KW    = {"macro", "rates", "rate", "credit", "fx", "currency", "bond", "fixed income"}

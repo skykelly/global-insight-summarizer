@@ -4,7 +4,7 @@
 // (기존 /wiki·/chat·/scoreboard 리다이렉트가 이 파라미터를 사용).
 import AntennaApp from './AntennaApp';
 
-export const metadata = { title: 'Antenna — 글로벌 리서치 인텔리전스' };
+export const metadata = { title: 'Market Signal IQ — 글로벌 리서치 인텔리전스' };
 
 export default async function ObservatoryPage({
   searchParams,

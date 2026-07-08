@@ -258,3 +258,6 @@ queued  → (사람 /review) → accepted | rejected (+reason_tag in review_log)
 | knowledge/summarize.py | sources, summaries |
 | knowledge/embed.py | sources, knowledge_items, knowledge_embeddings |
 | knowledge/pipeline.py | sources |
+| knowledge/scoring.py | claims, sources, trend_scores (UPSERT) |
+| knowledge/anomaly.py | trend_scores, claims, concepts, anomalies (INSERT) |
+| knowledge/trend_report.py | trend_scores, anomalies (읽기 전용) |

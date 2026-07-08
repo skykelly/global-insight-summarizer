@@ -12,7 +12,9 @@ FIXTURES = ROOT / "fixtures" / "scrapers"
 sys.path.insert(0, str(ROOT))
 
 from ingestion.channels.scrapers.base import BaseScraper
+from ingestion.channels.scrapers.blackrock import BlackRockScraper
 from ingestion.channels.scrapers.gs import GSScraper
+from ingestion.channels.scrapers.jefferies import JefferiesScraper
 from ingestion.channels.scrapers.jpm import JPMScraper
 from ingestion.channels.scrapers.ms import MSScraper
 
@@ -134,3 +136,100 @@ class TestMSScraper:
         soup = BeautifulSoup((FIXTURES / "ms_sample.html").read_text(), "lxml")
         date = MSScraper._jsonld_date(soup)
         assert date == "2025-05-10"
+
+
+# ── BlackRock BII ────────────────────────────────────────────────────────────
+
+class TestBlackRockScraper:
+    def setup_method(self):
+        self.source = _source("blackrock_bii", "BlackRock Investment Institute", "BlackRock")
+        self.scraper = BlackRockScraper(self.source)
+        self.html = (FIXTURES / "blackrock_sample.html").read_text()
+        self.soup = BeautifulSoup(self.html, "lxml")
+
+    def test_extracts_articles_from_fixture(self, monkeypatch):
+        monkeypatch.setattr(self.scraper, "_get", lambda url: self.soup)
+        stubs = self.scraper.fetch_list()
+        assert len(stubs) >= 3
+
+    def test_category_prefix_stripped_from_title(self, monkeypatch):
+        monkeypatch.setattr(self.scraper, "_get", lambda url: self.soup)
+        stubs = self.scraper.fetch_list()
+        titles = [s["title"] for s in stubs]
+        assert any(t == "Energy security in a world shaped" for t in titles)
+        # 카테고리 prefix("Geopolitics")가 제목에 남아있으면 안 됨
+        assert not any(t.startswith("Geopolitics") for t in titles)
+
+    def test_date_parsed_from_anchor_text(self, monkeypatch):
+        monkeypatch.setattr(self.scraper, "_get", lambda url: self.soup)
+        stubs = self.scraper.fetch_list()
+        by_title = {s["title"]: s["published_at"] for s in stubs}
+        assert by_title["Energy security in a world shaped"] == "2026-06-23"
+        assert by_title["Demographic divergence"] == "2025-07-24"
+
+    def test_skips_non_publication_link(self, monkeypatch):
+        monkeypatch.setattr(self.scraper, "_get", lambda url: self.soup)
+        stubs = self.scraper.fetch_list()
+        urls = [s["url"] for s in stubs]
+        assert not any(u.endswith("/about-us") for u in urls)
+
+    def test_normalize_returns_required_fields(self, monkeypatch):
+        monkeypatch.setattr(self.scraper, "_get", lambda url: self.soup)
+        stubs = self.scraper.fetch_list()
+        article = self.scraper.normalize(stubs[0], "Sample content")
+        assert article["issuer"] == "BlackRock"
+        assert article["source_yaml_id"] == "blackrock_bii"
+
+    def test_parse_anchor_static(self):
+        title, date = BlackRockScraper._parse_anchor(
+            "Geopolitics Energy security in a world shaped June 23, 2026 By BlackRock Investment Institute"
+        )
+        assert title == "Energy security in a world shaped"
+        assert date == "2026-06-23"
+
+
+# ── Jefferies ────────────────────────────────────────────────────────────────
+
+class TestJefferiesScraper:
+    def setup_method(self):
+        self.source = _source("jefferies_insights", "Jefferies Insights", "Jefferies")
+        self.scraper = JefferiesScraper(self.source)
+        self.html = (FIXTURES / "jefferies_sample.html").read_text()
+        self.soup = BeautifulSoup(self.html, "lxml")
+
+    def test_extracts_articles_from_fixture(self, monkeypatch):
+        monkeypatch.setattr(self.scraper, "_get", lambda url: self.soup)
+        stubs = self.scraper.fetch_list()
+        assert len(stubs) >= 3
+
+    def test_title_from_heading(self, monkeypatch):
+        monkeypatch.setattr(self.scraper, "_get", lambda url: self.soup)
+        stubs = self.scraper.fetch_list()
+        titles = [s["title"] for s in stubs]
+        assert any("Five Trends Shaping the Future of Power and Utilities" in t for t in titles)
+
+    def test_aria_label_fallback_title(self, monkeypatch):
+        monkeypatch.setattr(self.scraper, "_get", lambda url: self.soup)
+        stubs = self.scraper.fetch_list()
+        titles = [s["title"] for s in stubs]
+        assert any("Infrastructure Secondaries Hit Their Stride" in t for t in titles)
+
+    def test_skips_category_hub_and_index(self, monkeypatch):
+        monkeypatch.setattr(self.scraper, "_get", lambda url: self.soup)
+        stubs = self.scraper.fetch_list()
+        urls = [s["url"] for s in stubs]
+        assert not any(u.rstrip("/").endswith("/insights/markets") for u in urls)
+        assert not any(u.rstrip("/").endswith("/insights") for u in urls)
+
+    def test_date_from_date_span(self, monkeypatch):
+        monkeypatch.setattr(self.scraper, "_get", lambda url: self.soup)
+        stubs = self.scraper.fetch_list()
+        by_title = {s["title"]: s["published_at"] for s in stubs}
+        assert by_title["Five Trends Shaping the Future of Power and Utilities"] == "2026-06-04"
+
+    def test_normalize_returns_required_fields(self, monkeypatch):
+        monkeypatch.setattr(self.scraper, "_get", lambda url: self.soup)
+        stubs = self.scraper.fetch_list()
+        article = self.scraper.normalize(stubs[0], "Sample content")
+        assert article["issuer"] == "Jefferies"
+        assert article["source_yaml_id"] == "jefferies_insights"

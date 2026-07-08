@@ -182,10 +182,25 @@ sources:
     issuer: BlackRock
     url: https://www.blackrock.com/corporate/insights/blackrock-investment-institute
     tier: 2
-    method: reader
+    method: scraper  # BlackRockScraper 구현 완료 — reader에서 전환
+    # ⚠ 2026-07-08: 이 세션 프록시에서 blackrock.com CONNECT 403 — 라이브 인덱스
+    #   재검증 불가. fixtures/scrapers/blackrock_sample.html 기반 파싱 테스트만 통과.
+    #   실물 검증은 daily-ingest 첫 실행 로그에서 확인 필요 (R1이 실패 시 자동 진단)
     sector_tags: [power, semi, macro]
     schedule: daily
-    active: false  # 전용 스크래퍼 미구현 — 후속 과제 (인덱스 200, 링크 33개 확인)
+
+  - id: jefferies_insights
+    name: Jefferies Insights
+    issuer: Jefferies
+    url: https://www.jefferies.com/insights/
+    tier: 2
+    method: scraper  # JefferiesScraper 신규 구현
+    # ⚠ 2026-07-08: 이 세션 프록시에서 jefferies.com CONNECT 403 — 라이브 인덱스
+    #   재검증 불가. fixtures/scrapers/jefferies_sample.html 기반 파싱 테스트만 통과.
+    #   URL 패턴은 equity-research-blog seed 데이터(77건 실제 URL)로 역산 확정.
+    #   실물 검증은 daily-ingest 첫 실행 로그에서 확인 필요 (R1이 실패 시 자동 진단)
+    sector_tags: [power, semi, aisw, pm]
+    schedule: daily
 
   # ========================================================================
   # Tier 4 — 수동 PDF  (직접 URL 등록, manual_date 필수)

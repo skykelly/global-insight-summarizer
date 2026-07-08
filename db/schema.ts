@@ -5,7 +5,7 @@
 
 import {
   pgTable,
-  text, date, jsonb, uuid, timestamp, index, customType, real, integer, boolean
+  text, date, jsonb, uuid, timestamp, index, uniqueIndex, customType, real, integer, boolean
 } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 
@@ -188,7 +188,8 @@ export const trend_scores = pgTable('trend_scores', {
   score_details:      jsonb('score_details'),         // 계산 근거 스냅샷 (감사용)
   created_at:         timestamp('created_at', { withTimezone: true }).defaultNow(),
 }, (t) => [
-  index('idx_ts_target_period').on(t.target_type, t.target_id, t.period_start),
+  // UNIQUE 필수 — knowledge/scoring.py 가 이 조합으로 ON CONFLICT upsert 수행
+  uniqueIndex('idx_ts_target_period').on(t.target_type, t.target_id, t.period_start),
 ])
 
 // ── Phase 2.3: anomalies ──────────────────────────────────────────────────────
