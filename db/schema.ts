@@ -5,7 +5,7 @@
 
 import {
   pgTable,
-  text, date, jsonb, uuid, timestamp, index, customType
+  text, date, jsonb, uuid, timestamp, index, uniqueIndex, customType, real, integer, boolean
 } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 
@@ -104,18 +104,37 @@ export const knowledge_embeddings = pgTable('knowledge_embeddings', {
 ])
 
 // ── Phase 2: claims ──────────────────────────────────────────────────────────
-// Sonnet 추출 구조화 주장. Gate 3 기준 + RAG 구조화 소스.
+// 구조화 지식 단위 (일반화됨 — KNOWLEDGE_MODEL.md §2).
+// 원래 "추출된 주장"만 담았으나 Sector Trend Observatory 설계를 흡수하며
+// item_type으로 concept/claim/trend/metric/risk/weak_signal/counter_signal/
+// visual_insight/sector_shift 9종을 모두 담는 범용 테이블로 확장.
+// 테이블명은 claims로 유지 (리네임 시 Python/TS 다수 파일의 raw SQL 파손 위험).
+// ⚠ knowledge_items(RAG 임베딩 청크, 아래 Stage 4)와는 다른 테이블 — 혼동 주의.
 // issuer + published_at 필수 (Hard Rule). 원문에 없는 수치 생성 금지.
+// sector는 configs/taxonomy.yaml 의 sector id — 하드코딩 금지.
 export const claims = pgTable('claims', {
   id:           uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   source_id:    uuid('source_id').notNull().references(() => sources.id, { onDelete: 'cascade' }),
   issuer:       text('issuer').notNull(),       // Hard Rule: 필수
-  sector:       text('sector').notNull(),       // 'power_equipment', 'ai_semis'
+  sector:       text('sector').notNull(),       // configs/taxonomy.yaml sector id (예: 'ai_dc', 'power')
+  related_sectors: text('related_sectors').array(), // 교차 섹터 (cross-sector spread 감지용)
+  item_type:    text('item_type').notNull().default('claim'),
+  // concept | claim | trend | metric | risk | weak_signal | counter_signal | visual_insight | sector_shift
+  core_concept: text('core_concept'),           // configs/taxonomy.yaml concepts.id 참조 (느슨한 FK)
+  canonical_title: text('canonical_title'),     // claim 외 item_type에서 주로 사용
   entities:     text('entities').array(),       // 언급 기업·제품
-  claim_ko:     text('claim_ko').notNull(),     // 한국어 1문장 주장
-  direction:    text('direction'),             // bullish / bearish / neutral
-  horizon:      text('horizon'),               // '2027', 'H2 2026', 'long-term'
+  claim_ko:     text('claim_ko').notNull(),     // 한국어 1문장 주장/요약
+  direction:    text('direction'),             // bullish / bearish / neutral (투자 관점)
+  trend_direction: text('trend_direction'),     // rising/falling/stable/mixed/uncertain (관측 관점, direction과 별도 축)
+  horizon:      text('horizon'),               // 자유형: '2027', 'H2 2026', 'long-term'
+  time_horizon: text('time_horizon'),           // 구조화 버킷: near_term/mid_term/long_term/structural
   metrics:      jsonb('metrics'),              // {"HBM CAGR": {"value":"40%","span":"원문"}}
+  evidence:     jsonb('evidence'),              // {evidence_type, evidence_summary}
+  mention_relevance_score:    real('mention_relevance_score'),
+  importance_evidence_score:  real('importance_evidence_score'),
+  novelty_score:  real('novelty_score'),
+  anomaly_score:  real('anomaly_score'),
+  confidence_score: real('confidence_score'),   // < 0.6 은 사람 검토 권장
   published_at: date('published_at').notNull(), // Hard Rule: 필수
   valid_until:  date('valid_until'),
   supersedes:   uuid('supersedes'),            // self-FK — 동일 이슈어 뷰 변화 체인
@@ -125,6 +144,75 @@ export const claims = pgTable('claims', {
   index('idx_claims_sector_pub').on(t.sector, t.published_at),
   index('idx_claims_issuer_sector').on(t.issuer, t.sector),
   index('idx_claims_source').on(t.source_id),
+  index('idx_claims_concept').on(t.core_concept),
+  index('idx_claims_item_type').on(t.item_type),
+])
+
+// ── Phase 2.1: concepts ───────────────────────────────────────────────────────
+// 섹터 간 교차 컨셉 taxonomy. configs/taxonomy.yaml에서 upsert.
+// status='candidate'는 claims 추출 중 taxonomy에 없는 core_concept 자동 발견분.
+export const concepts = pgTable('concepts', {
+  id:               uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  slug:             text('slug').notNull().unique(),  // taxonomy.yaml concepts.id
+  canonical_name:   text('canonical_name').notNull(),
+  aliases:          text('aliases').array(),
+  definition:       text('definition'),
+  related_sectors:  text('related_sectors').array(),
+  status:           text('status').notNull().default('active'), // active | candidate | merged
+  first_seen_at:    date('first_seen_at'),
+  last_seen_at:     date('last_seen_at'),
+  created_at:       timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:       timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('idx_concepts_status').on(t.status),
+])
+
+// ── Phase 2.2: trend_scores ───────────────────────────────────────────────────
+// 섹터·컨셉별 주기 집계. Mention(언급 강도)과 Importance(숫자 근거 강도)를
+// 분리 — 합산해 단일 랭킹으로 만들지 않는다.
+export const trend_scores = pgTable('trend_scores', {
+  id:                 uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  period_start:       date('period_start').notNull(),
+  period_end:         date('period_end').notNull(),
+  target_type:        text('target_type').notNull(),  // 'sector' | 'concept'
+  target_id:          text('target_id').notNull(),    // sector id 또는 concept slug
+  mention_score:      real('mention_score'),
+  importance_score:   real('importance_score'),
+  momentum_score:     real('momentum_score'),
+  novelty_score:      real('novelty_score'),
+  anomaly_score:      real('anomaly_score'),
+  mention_count:      integer('mention_count'),
+  source_diversity:   integer('source_diversity'),   // 서로 다른 issuer 수
+  metric_count:       integer('metric_count'),       // metrics 포함 claims 수
+  evidence_quality:   real('evidence_quality'),
+  score_details:      jsonb('score_details'),         // 계산 근거 스냅샷 (감사용)
+  created_at:         timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  // UNIQUE 필수 — knowledge/scoring.py 가 이 조합으로 ON CONFLICT upsert 수행
+  uniqueIndex('idx_ts_target_period').on(t.target_type, t.target_id, t.period_start),
+])
+
+// ── Phase 2.3: anomalies ──────────────────────────────────────────────────────
+// 이상 징후 후보 — 확정 판단이 아니라 사람이 검토할 큐 (§2.5 트리아지와 동일 원칙).
+export const anomalies = pgTable('anomalies', {
+  id:                     uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  detected_at:            timestamp('detected_at', { withTimezone: true }).defaultNow(),
+  anomaly_type:           text('anomaly_type').notNull(),
+  // mention_spike | source_diversity_jump | high_importance_low_mention |
+  // counter_signal | metric_divergence | visual_only_signal | new_concept_emergence
+  title:                  text('title'),
+  description:            text('description'),
+  related_concepts:       text('related_concepts').array(),
+  related_sectors:        text('related_sectors').array(),
+  related_claim_ids:      uuid('related_claim_ids').array(),
+  previous_period:        jsonb('previous_period'),
+  current_period:         jsonb('current_period'),
+  severity:               text('severity'),        // low | medium | high
+  review_required:        boolean('review_required').notNull().default(true),
+  status:                 text('status').notNull().default('open'), // open | reviewed | dismissed
+}, (t) => [
+  index('idx_anomalies_status').on(t.status),
+  index('idx_anomalies_type').on(t.anomaly_type),
 ])
 
 // ── Phase 2: review_log ───────────────────────────────────────────────────────

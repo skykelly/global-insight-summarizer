@@ -9,11 +9,15 @@
   "expected_claims": [
     {
       "issuer": "IMF",
-      "sector": "power_equipment",
+      "sector": "power",
+      "item_type": "metric",
+      "core_concept": "electrification_wave",
       "entities": [],
       "claim_ko": "IMF는 신흥국 에너지 인프라 투자가 2026~2028년 평균 12% 증가할 것으로 전망",
       "direction": "bullish",
+      "trend_direction": "rising",
       "horizon": "2028",
+      "time_horizon": "mid_term",
       "metrics": {
         "신흥국 에너지 투자 증가율": {"value": "12%", "span": "emerging market energy infrastructure investment to grow 12% on average 2026-2028"}
       },
@@ -21,11 +25,14 @@
     },
     {
       "issuer": "IMF",
-      "sector": "ai_semis",
+      "sector": "ai_dc",
+      "item_type": "metric",
       "entities": [],
       "claim_ko": "글로벌 AI 투자가 2026년 GDP 대비 0.5%p 기여, 생산성 증가 견인",
       "direction": "bullish",
+      "trend_direction": "rising",
       "horizon": "2026",
+      "time_horizon": "near_term",
       "metrics": {
         "AI GDP 기여도": {"value": "0.5%p", "span": "global AI investment contributing ~0.5ppt to GDP growth in 2026"}
       },

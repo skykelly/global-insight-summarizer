@@ -12,11 +12,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import anthropic
-
 from knowledge.db import db_conn
-
-_CLIENT = anthropic.Anthropic()
+from knowledge.llm_client import MODEL_MAIN, call_text
 
 _SYSTEM = """\
 당신은 글로벌 기관 리서치를 한국어로 지식화하는 애널리스트입니다.
@@ -46,16 +43,12 @@ _SYSTEM = """\
 
 
 def _summarize(title: str, issuer: str, published_at: str, content: str) -> str:
-    msg = _CLIENT.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=2000,
+    return call_text(
+        model=MODEL_MAIN,
         system=_SYSTEM,
-        messages=[{
-            "role": "user",
-            "content": f"발행처: {issuer}\n발행일: {published_at}\n제목: {title}\n\n원문:\n{content[:8000]}"
-        }],
+        user_content=f"발행처: {issuer}\n발행일: {published_at}\n제목: {title}\n\n원문:\n{content[:8000]}",
+        max_tokens=2000,
     )
-    return msg.content[0].text
 
 
 def run(source_ids: list[str] | None = None) -> dict[str, int]:
@@ -103,8 +96,8 @@ def run(source_ids: list[str] | None = None) -> dict[str, int]:
             with db_conn() as conn2:
                 with conn2.cursor() as cur2:
                     cur2.execute(
-                        "INSERT INTO summaries (source_id, content_ko) VALUES (%s, %s)",
-                        (sid, summary),
+                        "INSERT INTO summaries (source_id, content_ko, model) VALUES (%s, %s, %s)",
+                        (sid, summary, MODEL_MAIN),
                     )
             print(f"[summarize] 완료: {title[:50]}")
             stats["summarized"] += 1

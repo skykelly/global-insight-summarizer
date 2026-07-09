@@ -51,16 +51,17 @@ SOURCE_NAME_MAP: dict[str, str] = {
     "goldman-sachs":  "Goldman Sachs",
     "j-p-morgan":     "J.P. Morgan",
     "morgan-stanley": "Morgan Stanley",
-    "blackrock-bii":  "BlackRock",
+    "blackrock":      "BlackRock",
     "jefferies":      "Jefferies",
 }
 
 SOURCE_YAML_ID_MAP: dict[str, str] = {
+    # 키는 equity-research-blog articles.json 의 실제 source_id (실측 확인, 하이픈 없음).
     "goldman-sachs":  "gs_insights",
     "j-p-morgan":     "jpm_insights",
     "morgan-stanley": "ms_ideas",
-    "blackrock-bii":  "blackrock_bii",
-    "jefferies":      "jefferies",
+    "blackrock":      "blackrock_bii",
+    "jefferies":      "jefferies_insights",
 }
 
 _MACRO_KW    = {"macro", "rates", "rate", "credit", "fx", "currency", "bond", "fixed income"}
@@ -69,15 +70,18 @@ _SEMIS_KW    = {"technology", "tech", "semiconductor", "semis", "ai", "chip", "c
 
 
 def _map_sector(category: str) -> list[str]:
+    """카테고리 키워드 → sector_tags (configs/taxonomy.yaml sector id).
+    거친 1차 분류 — 정밀 분류는 Gate1/extract_claims의 LLM이 taxonomy 전체를 보고 수행한다.
+    """
     cat = category.lower()
     words = set(cat.replace("&", " ").replace(",", " ").split())
     if words & _MACRO_KW:
         return ["macro"]
     if words & _POWER_KW:
-        return ["power_equipment"]
+        return ["power"]
     if words & _SEMIS_KW:
-        return ["ai_semis"]
-    return ["power_equipment", "ai_semis"]
+        return ["semi"]
+    return ["power", "semi"]
 
 
 def _fetch_body(url: str) -> str:

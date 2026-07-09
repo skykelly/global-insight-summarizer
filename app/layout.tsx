@@ -9,7 +9,7 @@ const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Research Wiki',
+  title: 'Market Signal IQ',
   description: '글로벌 기관 리서치 수집·지식화·wiki/RAG 개인 도구',
 }
 

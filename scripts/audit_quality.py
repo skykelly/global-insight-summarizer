@@ -134,10 +134,10 @@ def render_issue_body(data: dict) -> str:
 
     lines += [
         "## auto_accept 스팟체크 (5건)",
-        *[f"- `{s['id'][:8]}` {s['title'] or s['url']} | quality: {s['quality']}" for s in data["auto_accept_sample"]] or ["(샘플 없음)"],
+        *([f"- `{s['id'][:8]}` {s['title'] or s['url']} | quality: {s['quality']}" for s in data["auto_accept_sample"]] or ["(샘플 없음)"]),
         "",
         "## auto_reject 스팟체크 (5건)",
-        *[f"- `{s['id'][:8]}` {s['title'] or s['url']} | gate_note: {s['gate_note']}" for s in data["auto_reject_sample"]] or ["(샘플 없음)"],
+        *([f"- `{s['id'][:8]}` {s['title'] or s['url']} | gate_note: {s['gate_note']}" for s in data["auto_reject_sample"]] or ["(샘플 없음)"]),
         "",
         "---",
         "_R2 자동 생성 — 반려율 40%+ 소스는 sources.yaml active: false 검토 필요_",

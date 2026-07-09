@@ -86,7 +86,7 @@ jobs:
           $(cat /tmp/health_output.txt 2>/dev/null || echo '스캔 결과 없음')
 
           ### 발굴 지침
-          - 타깃 섹터: power_equipment, ai_semis
+          - 타깃 섹터(1차): ai_dc, power, semi, aisw, pm — configs/taxonomy.yaml 참조
           - 우선순위: IB·국제기구·컨설팅 > 국내 대형 증권사 > 싱크탱크
           - 제외: 뉴스 집계·개인 블로그·애그리게이터
           - authority 기준: KNOWLEDGE_MODEL.md §게이트 참조

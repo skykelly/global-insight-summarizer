@@ -14,9 +14,10 @@ equity-research-blog(IB 스크래퍼)를 재조합한 시스템.
 - geo-wiki 이식 패턴 참조: docs/patterns-from-geo-wiki.md
 
 ## Models (런타임)
-- 관련성 필터/스코어링: claude-haiku-4-5
-- claims 추출/요약/wiki 생성/RAG: claude-sonnet-4-6
+- 관련성 필터/스코어링: OPENAI_MODEL_FILTER (기본 gpt-4o-mini)
+- claims 추출/요약/wiki 생성/RAG: OPENAI_MODEL_MAIN (기본 gpt-4o)
 - 임베딩: OpenAI text-embedding-3-small (1536d) — 변경 금지
+- LLM 공급자는 OpenAI로 단일화. 호출은 knowledge/llm_client.py(파이썬)·lib/openai.ts(TS)로 집약
 
 ## Hard Rules
 - Vercel 함수에서 크롤링/장시간 작업 금지. 파이프라인은 Actions 전용

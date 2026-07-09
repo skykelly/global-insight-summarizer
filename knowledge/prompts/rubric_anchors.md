@@ -6,13 +6,13 @@
 ## 합격 앵커
 
 ### [PASS-1] IMF WEO 섹터별 성장 전망 (권위 기관, 수치 밀도 높음)
-- relevance: 5 — 전력기기·AI 반도체 수요에 직결되는 글로벌 투자 전망
+- relevance: 5 — 전력망·AI 인프라 수요에 직결되는 글로벌 투자 전망
 - density: 4 — 국가·섹터별 구체 수치 다수, 시나리오 분기 포함
 - authority: 5 — IMF 공식 발행물, 저자 명기
 - novelty: 4 — 직전 WEO 대비 전망치 업데이트, 신규 리스크 항목 추가
 
 ### [PASS-2] Goldman Sachs AI 인프라 capex 전망 보고서
-- relevance: 5 — AI 반도체·데이터센터 직접 섹터
+- relevance: 5 — AI 인프라·데이터센터 직접 섹터
 - density: 5 — 기업별 capex, CAGR, 점유율 수치 빽빽함
 - authority: 4 — 글로벌 IB 리서치, 애널리스트 명기
 - novelty: 4 — 신규 전망치, 기존 시장 컨센서스 대비 상향 이유 제시

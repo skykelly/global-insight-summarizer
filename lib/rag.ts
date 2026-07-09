@@ -10,9 +10,8 @@
 import { db, pool } from '@/lib/db'
 import { claims, sources } from '@/db/schema'
 import { eq, and, inArray, sql } from 'drizzle-orm'
-import OpenAI from 'openai'
-
-const openai = new OpenAI()
+import { getOpenAI } from '@/lib/openai'
+import { detectSectorHint } from '@/lib/taxonomy'
 
 // ── 타입 ──────────────────────────────────────────────────────────────────────
 
@@ -32,7 +31,7 @@ export type SearchResult = {
 // ── 임베딩 ────────────────────────────────────────────────────────────────────
 
 export async function embedQuery(text: string): Promise<number[]> {
-  const resp = await openai.embeddings.create({
+  const resp = await getOpenAI().embeddings.create({
     model: 'text-embedding-3-small',
     input: text.slice(0, 4000),
   })
@@ -107,12 +106,8 @@ export async function searchKnowledge(
 // ── 구조화 컨텍스트 빌더 ──────────────────────────────────────────────────────
 
 export async function buildComparisonContext(query: string): Promise<string> {
-  // 질의에서 섹터 힌트 추출
-  const sectorHint = /전력기기|power_equipment/i.test(query)
-    ? 'power_equipment'
-    : /ai\s*반도체|ai_semis/i.test(query)
-    ? 'ai_semis'
-    : null
+  // 질의에서 섹터 힌트 추출 (configs/taxonomy.yaml 기준 — 하드코딩 금지)
+  const sectorHint = detectSectorHint(query)
 
   const rows = await db
     .select({

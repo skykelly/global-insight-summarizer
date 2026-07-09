@@ -12,10 +12,12 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from knowledge.taxonomy import sector_ids  # noqa: E402
+
 FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "golden_claims"
 REQUIRED_CLAIM_FIELDS = {"issuer", "sector", "claim_ko", "published_at"}
 VALID_DIRECTIONS = {"bullish", "bearish", "neutral"}
-VALID_SECTORS = {"power_equipment", "ai_semis"}
+VALID_SECTORS = set(sector_ids())  # configs/taxonomy.yaml 전체 10개 (active 여부 무관)
 
 
 def load_fixtures() -> list[tuple[str, dict]]:

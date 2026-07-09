@@ -13,13 +13,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import anthropic
-
 from knowledge.db import db_conn
+from knowledge.llm_client import MODEL_MAIN, CircuitBreaker, LLMCallError, call_json
+from knowledge.taxonomy import sector_prompt_block
 
 _ROOT = Path(__file__).resolve().parent.parent
 _ANCHORS_PATH = _ROOT / "knowledge" / "prompts" / "rubric_anchors.md"
-_CLIENT = anthropic.Anthropic()
 
 
 def _load_anchors() -> str:
@@ -57,8 +56,11 @@ def _call_sonnet(title: str, issuer: str, content: str, similar: list[str], anch
     system = f"""\
 당신은 리서치 품질 평가자입니다. 아래 4차원으로 문서를 평가합니다.
 
+대상 섹터 (1차 구현 대상):
+{sector_prompt_block()}
+
 차원 정의:
-- relevance (1~5): 전력기기(power_equipment) 또는 AI 반도체(ai_semis) 섹터 적합도
+- relevance (1~5): 위 섹터 중 하나에 대한 적합도
 - density (1~5): 신규 수치·주장·데이터의 밀도 (추상적 문장만이면 낮음)
 - authority (1~5): 발행처·저자 신뢰도 (IB리서치>컨설팅>언론>블로그)
 - novelty (1~5): 기존 지식베이스 대비 신규성 (아래 유사 문서 목록 참고)
@@ -75,16 +77,12 @@ def _call_sonnet(title: str, issuer: str, content: str, similar: list[str], anch
 JSON만 반환 (다른 텍스트 없음):
 {{"relevance": 1~5, "density": 1~5, "authority": 1~5, "novelty": 1~5, "note": "판정 근거 1줄 (한국어)"}}"""
 
-    msg = _CLIENT.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=256,
+    return call_json(
+        model=MODEL_MAIN,
         system=system,
-        messages=[{
-            "role": "user",
-            "content": f"발행처: {issuer}\n제목: {title}\n\n본문:\n{content[:2000]}"
-        }],
+        user_content=f"발행처: {issuer}\n제목: {title}\n\n본문:\n{content[:2000]}",
+        max_tokens=256,
     )
-    return json.loads(msg.content[0].text)
 
 
 def run(source_ids: list[str] | None = None) -> dict[str, int]:
@@ -104,6 +102,8 @@ def run(source_ids: list[str] | None = None) -> dict[str, int]:
                     "SELECT id, title, issuer, content_text FROM sources WHERE status='pending'"
                 )
             rows = cur.fetchall()
+
+    breaker = CircuitBreaker(threshold=5)
 
     for row in rows:
         sid = row["id"]
@@ -126,7 +126,12 @@ def run(source_ids: list[str] | None = None) -> dict[str, int]:
                     )
             print(f"[gate2] {title[:50]} → {quality}")
             stats["evaluated"] += 1
+            breaker.record_success()
 
+        except LLMCallError as e:
+            print(f"[gate2] {sid} 오류: {e}")
+            stats["errors"] += 1
+            breaker.record_failure(str(e))
         except Exception as e:
             print(f"[gate2] {sid} 오류: {e}")
             stats["errors"] += 1

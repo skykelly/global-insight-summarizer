@@ -14,14 +14,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import anthropic
-
 from knowledge.db import db_conn
 from knowledge.generate_wiki import SECTORS, SECTOR_LABELS, _fmt_claim
 
 _ROOT = Path(__file__).resolve().parent.parent
 _OUTPUT_DIR = _ROOT / "output"
-_CLIENT = anthropic.Anthropic()
 
 
 def _fetch_new_claims(since: str) -> dict[str, list[dict]]:

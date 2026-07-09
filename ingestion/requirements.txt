@@ -12,9 +12,10 @@ feedparser>=6.0.11
 psycopg[binary]>=3.2.0
 PyYAML>=6.0.2
 
-# ── LLM (D1/D2) ──
-anthropic>=0.40.0     # Haiku 필터 / Sonnet 추출·요약
-openai>=1.30.0        # text-embedding-3-small (임베딩 전용)
+# ── LLM (OpenAI 단일 공급자) ──
+# 필터/스코어링·추출·요약·wiki·임베딩·PDF 폴백 전부 OpenAI 사용.
+# Responses API PDF file_data 입력(pdf/parse.py)에 최신 SDK 필요.
+openai>=1.66.0
 
 # ── Phase 1 추가 ──
 docling>=2.0.0            # PDF 파싱 (표 보존, D6)
