@@ -136,6 +136,35 @@ sources:
     sector_tags: [semi]
     schedule: daily
 
+  # ── R3 발굴 소스 (2026-07-10 검증 완료) ─────────────────────────────────
+
+  - id: fed_feds_notes
+    name: Federal Reserve FEDS Notes
+    issuer: Federal Reserve
+    url: https://www.federalreserve.gov/feeds/feds_notes.xml  # 2026-07-10 검증: 200 유효 XML, 최신 2026-07-07
+    tier: 1
+    method: rss
+    sector_tags: [macro]
+    schedule: weekly
+
+  - id: the_next_platform
+    name: The Next Platform
+    issuer: The Next Platform
+    url: https://www.nextplatform.com/feed/  # 2026-07-10 검증: 200 유효 XML, 최신 2026-07-08
+    tier: 1
+    method: rss
+    sector_tags: [semi]
+    schedule: daily
+
+  - id: chips_and_cheese
+    name: Chips and Cheese
+    issuer: Chips and Cheese
+    url: https://chipsandcheese.com/feed/  # 2026-07-10 검증: 200 유효 XML, 최신 2026-07-10
+    tier: 1
+    method: rss
+    sector_tags: [semi]
+    schedule: weekly
+
   # ========================================================================
   # Tier 2 — 스크래퍼  (IB 리서치)
   # ========================================================================
