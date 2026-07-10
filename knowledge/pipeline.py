@@ -32,11 +32,12 @@ def run(
     source_ids: list[str] | None = None,
     calibration: bool = False,
     dry_run: bool = False,
+    gate1_limit: int | None = 150,
 ) -> None:
     pending = _count_pending() if not source_ids else len(source_ids)
     print(f"{'='*60}")
     print(f"지식 파이프라인 시작{' [DRY-RUN]' if dry_run else ''}")
-    print(f"대상: {pending}건")
+    print(f"대상: {pending}건 (Gate1 배치 제한: {gate1_limit or '없음'})")
     print(f"{'='*60}")
 
     if dry_run:
@@ -44,7 +45,7 @@ def run(
         return
 
     print("\n[1/6] Gate1: Haiku 하드필터")
-    r1 = gate1_filter.run(source_ids)
+    r1 = gate1_filter.run(source_ids, limit=gate1_limit)
     print(f"  통과: {r1['passed']}, 거부: {r1['rejected']}")
 
     print("\n[2/6] Gate2: Sonnet 4차원 루브릭")
@@ -77,5 +78,6 @@ if __name__ == "__main__":
     p.add_argument("--source-ids", nargs="*")
     p.add_argument("--calibration", action="store_true")
     p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--gate1-limit", type=int, default=150, help="Gate1 1회 처리 최대 건수 (기본 150)")
     args = p.parse_args()
-    run(args.source_ids, args.calibration, args.dry_run)
+    run(args.source_ids, args.calibration, args.dry_run, gate1_limit=args.gate1_limit)

@@ -53,7 +53,7 @@ def _update_status(sid: str, status: str, note: str) -> None:
             )
 
 
-def run(source_ids: list[str] | None = None) -> dict[str, int]:
+def run(source_ids: list[str] | None = None, limit: int | None = None) -> dict[str, int]:
     """pending 소스를 Gate 1으로 필터링. 반환값: {passed, rejected} 카운트."""
     stats = {"passed": 0, "rejected": 0}
 
@@ -67,13 +67,17 @@ def run(source_ids: list[str] | None = None) -> dict[str, int]:
                 )
             else:
                 cur.execute(
-                    "SELECT id, title, content_text, issuer FROM sources WHERE status='pending'"
+                    "SELECT id, title, content_text, issuer FROM sources WHERE status='pending' ORDER BY created_at"
                 )
             rows = cur.fetchall()
     # 커넥션은 여기서 이미 닫힘 — 아래 API 호출 루프 동안 DB 트랜잭션을 열어두지 않는다.
     # 이후 상태 변경은 _update_status()가 레코드별 짧은 커넥션으로 처리한다.
 
     breaker = CircuitBreaker(threshold=5)
+
+    if limit:
+        rows = rows[:limit]
+        print(f"[gate1] 처리 대상: {len(rows)}건 (limit={limit})")
 
     for row in rows:
         sid = row["id"]
@@ -115,6 +119,7 @@ if __name__ == "__main__":
     import argparse
     p = argparse.ArgumentParser()
     p.add_argument("--source-ids", nargs="*")
+    p.add_argument("--limit", type=int, default=None, help="최대 처리 건수 (배치 제한)")
     args = p.parse_args()
-    result = run(args.source_ids)
+    result = run(args.source_ids, limit=args.limit)
     print(f"Gate1 완료 — 통과: {result['passed']}건, 거부: {result['rejected']}건")
